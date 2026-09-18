@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/loja",
+      "destination": "https://loja.japax01.com.br",
+      "permanent": false
+    },
+    {
+      "source": "/loja/:path*",
+      "destination": "https://loja.japax01.com.br/:path*",
+      "permanent": false
+    }
+  ]
+}
