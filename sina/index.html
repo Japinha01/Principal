@@ -384,13 +384,13 @@ body.gp .card.gp-foco{transform:translateY(-10px)}
     scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
   #build::-webkit-scrollbar{display:none}
   #build .arma,#build .marca,#build .syn{font-size:.66rem;padding:1px 5px;white-space:nowrap;flex:none}
-  /* tarôs para a esquerda, deixando a direita só para os botões de ação */
-  #tarots{left:10px;right:auto;bottom:calc(92px + env(safe-area-inset-bottom));align-items:flex-start;gap:4px}
-  .tarot{font-size:.76rem;padding:3px 8px;max-width:44vw}
-  #btnDash{width:64px;height:64px;font-size:.8rem;right:calc(12px + env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));opacity:.9}
-  #btnSkill{right:calc(84px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));width:56px;height:56px}
-  #btnSkill .px{--s:34px}
-  #rapido{bottom:calc(96px + env(safe-area-inset-bottom))}
+  /* controles no tamanho original, só respeitando a borda da tela */
+  #tarots{left:10px;right:auto;bottom:calc(150px + env(safe-area-inset-bottom));align-items:flex-start;gap:5px}
+  .tarot{font-size:.82rem;padding:4px 9px;max-width:46vw}
+  #btnDash{width:78px;height:78px;right:calc(16px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom))}
+  #btnSkill{right:calc(104px + env(safe-area-inset-right));bottom:calc(36px + env(safe-area-inset-bottom));width:66px;height:66px}
+  #btnSkill .px{--s:42px}
+  #rapido{bottom:calc(120px + env(safe-area-inset-bottom))}
   #toast{bottom:calc(96px + env(safe-area-inset-bottom));font-size:.9rem;padding:.45rem .8rem}
   #dica{bottom:calc(150px + env(safe-area-inset-bottom));font-size:.92rem}
   #banner{font-size:clamp(1.6rem,7vw,2.4rem)}
@@ -401,10 +401,10 @@ body.gp .card.gp-foco{transform:translateY(-10px)}
 @media (hover:none) and (max-height:520px){
   #timer{font-size:1.2rem}
   #rodada{top:24px}
-  #build{bottom:2px;max-width:calc(100vw - 200px)}
-  #tarots{bottom:74px;flex-direction:row}
-  #btnDash{width:56px;height:56px;bottom:10px}
-  #btnSkill{width:48px;height:48px;bottom:14px;right:74px}
+  #build{bottom:2px;max-width:calc(100vw - 220px)}
+  #tarots{bottom:96px;flex-direction:row}
+  #btnDash{width:68px;height:68px;bottom:14px}
+  #btnSkill{width:58px;height:58px;bottom:18px;right:92px}
   .hudtopo{padding:2px 8px 0}
 }
 </style>
@@ -2642,19 +2642,34 @@ function query(x,y,r,cb){
   }
 }
 function nearestEnemy(x,y,maxD,exclude){
+  maxD = Math.min(maxD, Math.hypot(limiteTela().hw, limiteTela().hh));
   let best=null, bd=maxD*maxD;
   for(const e of G.enemies){
     if(e.dead || (exclude && exclude.has(e))) continue;
+    if(!naTela(e.x, e.y)) continue;
     const d=(e.x-x)**2+(e.y-y)**2;
     if(d<bd){ bd=d; best=e; }
   }
   return best;
 }
+// limite de mira: nada de matar o que o jogador não consegue ver.
+// usa o retângulo visível, não um círculo, porque a tela do celular é estreita
+function limiteTela(){
+  const [hw, hh] = viewHalf();
+  return {hw: Math.max(140, hw - 24), hh: Math.max(140, hh - 24)};
+}
+function naTela(x, y){
+  const L = limiteTela();
+  return Math.abs(x - P.x) < L.hw && Math.abs(y - P.y) < L.hh;
+}
+function alcanceVis(){ const L = limiteTela(); return Math.min(640, Math.min(L.hw, L.hh)); }
 function randomEnemyNear(range){
+  range = Math.min(range, alcanceVis());
+  const L = limiteTela();
   const n = G.enemies.length; if(!n) return null;
   for(let i=0;i<14;i++){
     const e = G.enemies[(Math.random()*n)|0];
-    if(!e.dead && Math.abs(e.x-P.x)<range && Math.abs(e.y-P.y)<range*0.7) return e;
+    if(!e.dead && Math.abs(e.x-P.x) < Math.min(range, L.hw) && Math.abs(e.y-P.y) < Math.min(range*0.7, L.hh)) return e;
   }
   return nearestEnemy(P.x,P.y,range);
 }
@@ -3063,7 +3078,7 @@ function fireWeapon(w){
         const n = st.n + P.extraN*2 + (J.eco?4:0), off = Math.random()*Math.PI;
         for(let i=0;i<n;i++){
           const a = off + i/n*Math.PI*2;
-          G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*560, vy:Math.sin(a)*560, r:5, dmg:st.dmg, pierce:st.pierce+(J.lamina?2:0), life:1.1, hit:new Set()});
+          G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*560, vy:Math.sin(a)*560, r:5, dmg:st.dmg, pierce:st.pierce+(J.lamina?2:0), life:Math.min(1.1, alcanceVis()/560), hit:new Set()});
         }
       } else {
         const n = (st.n + P.extraN + (J.eco?2:0)) * (G.sombra ? 3 : 1);
@@ -3071,7 +3086,7 @@ function fireWeapon(w){
         const base = Math.atan2(t.y-P.y, t.x-P.x);
         for(let i=0;i<n;i++){
           const a = base + (i-(n-1)/2)*0.14;
-          G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*540, vy:Math.sin(a)*540, r:5, dmg:st.dmg, pierce:st.pierce+(J.lamina?2:0), life:1.2, hit:new Set()});
+          G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*540, vy:Math.sin(a)*540, r:5, dmg:st.dmg, pierce:st.pierce+(J.lamina?2:0), life:Math.min(1.2, alcanceVis()/540), hit:new Set()});
         }
       }
       sfx.shoot();
@@ -3117,7 +3132,7 @@ function fireWeapon(w){
       const base = Math.atan2(t.y-P.y, t.x-P.x);
       for(let i=0;i<n;i++){
         const a = base + (i-(n-1)/2)*(n>3 ? Math.PI*2/n : 0.35);
-        G.proj.push({kind:'chakram', x:P.x, y:P.y, a, dist:0, range:st.range*P.area, out:true, spd:w.evo?560:430, r:w.evo?13:10, dmg:st.dmg, life:6, hit:new Set(), evo:w.evo});
+        G.proj.push({kind:'chakram', x:P.x, y:P.y, a, dist:0, range:Math.min(st.range*P.area, alcanceVis()), out:true, spd:w.evo?560:430, r:w.evo?13:10, dmg:st.dmg, life:6, hit:new Set(), evo:w.evo});
       }
       tone(600,0.08,'triangle',0.02,1.4);
       return true;
@@ -5250,7 +5265,7 @@ function usarHabilidade(){
       const d = Math.round(wstat('faca', Math.max(3, (G.weapons.find(w=>w.id==='faca')||{lvl:3}).lvl), false).dmg * 1.5);
       for(let i=0;i<24;i++){
         const a = i/24*Math.PI*2;
-        G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*600, vy:Math.sin(a)*600, r:5, dmg:d, pierce:4, life:1.2, hit:new Set()});
+        G.proj.push({kind:'faca', tag:'lamina', x:P.x, y:P.y, vx:Math.cos(a)*600, vy:Math.sin(a)*600, r:5, dmg:d, pierce:4, life:Math.min(1.2, alcanceVis()/600), hit:new Set()});
       }
       break;
     }
@@ -6577,7 +6592,7 @@ function grimExtra(aba){
 
 
 /* ---------- guia do jogo e notas de versão ---------- */
-const VERSAO_JOGO = '1.4.1';
+const VERSAO_JOGO = '1.4.2';
 const GUIA_STR = {
   pt:{g_tab_guia:'Como jogar', guia_intro:'Tudo o que o jogo tem, explicado em partes. Você não precisa decorar: as dicas também aparecem sozinhas quando cada coisa acontece pela primeira vez.',
       notas_titulo:'Notas de versão', notas_btn:'Novidades', notas_futuro:'Em breve', notas_atual:'Versão atual', notas_antiga:'Versões anteriores', novidade:'novo'},
@@ -6689,7 +6704,14 @@ const NOTAS = [
     ru:['Следующие обновления', ['Страница в Steam, демо и достижения','Новые биомы, боссы и классы','Ежедневный вызов с рейтингом','Оригинальный саундтрек']],
     ja:['次のアップデート', ['Steamページ、体験版、実績','新しいバイオーム、ボス、クラス','ランキング付きのデイリーチャレンジ','オリジナルサウンドトラック']],
     ko:['다음 업데이트', ['스팀 페이지, 데모, 도전 과제','새로운 지역, 보스, 직업','랭킹이 있는 일일 도전','오리지널 사운드트랙']]}},
-  {v:'1.4.1', tipo:'atual', t:{
+  {v:'1.4.2', tipo:'atual', t:{
+    pt:['Nada morre fora da tela', ['As armas agora só miram no que cabe no campo de visão: no celular, 58% dos abates aconteciam fora da tela e passaram a ser nenhum','Adagas, chakrams e projéteis param na borda visível em vez de sumirem','Controles de volta ao tamanho anterior, só respeitando as bordas do aparelho']],
+    en:['Nothing dies off-screen', ['Weapons now only target what fits on screen: on mobile 58% of kills happened off-screen and are now none','Daggers, chakrams and projectiles stop at the visible edge instead of flying away','Controls back to their previous size, just respecting the device edges']],
+    es:['Nada muere fuera de pantalla', ['Las armas solo apuntan a lo que cabe en pantalla: en móvil el 58% de las bajas ocurrían fuera y ahora son ninguna','Dagas, chakrams y proyectiles se detienen en el borde visible en vez de perderse','Controles de vuelta a su tamaño anterior, respetando los bordes del dispositivo']],
+    ru:['Никто не гибнет за кадром', ['Оружие целится только в то, что видно на экране: на телефоне 58% убийств происходило за кадром, теперь ноль','Кинжалы, чакрамы и снаряды останавливаются у видимого края, а не улетают','Размер кнопок вернули к прежнему, с учётом краёв экрана']],
+    ja:['画面外で敵が死なない', ['武器は画面に映る範囲だけを狙うように：モバイルでは撃破の58%が画面外だったのが0%に','短剣・チャクラム・弾は見えている端で止まり、飛び去らない','操作ボタンは以前のサイズに戻し、端末の縁だけ考慮']],
+    ko:['화면 밖에서 죽지 않습니다', ['무기가 화면에 보이는 대상만 조준합니다: 모바일에서 처치의 58%가 화면 밖이었지만 이제 0%','단검, 차크람, 투사체가 보이는 가장자리에서 멈춥니다','컨트롤 크기를 이전으로 되돌리고 기기 가장자리만 고려']]}},
+  {v:'1.4.1', tipo:'antiga', t:{
     pt:['Celular', ['Câmera mais afastada: dá para ver a horda chegando de novo','HUD compacto: tarôs à esquerda, barra de armas rolável e botões menores','Texto da rodada encurtado para não cobrir os contadores','Respeita as bordas arredondadas e o entalhe da tela, e tem layout próprio para o celular deitado']],
     en:['Mobile', ['Camera pulled back: you can see the horde coming again','Compact HUD: tarots on the left, scrollable weapon bar and smaller buttons','Shorter round text so it no longer covers the counters','Respects rounded corners and notches, with its own layout for landscape']],
     es:['Móvil', ['Cámara más alejada: se vuelve a ver la horda que llega','HUD compacto: tarots a la izquierda, barra de armas deslizable y botones más pequeños','Texto de la ronda acortado para no tapar los contadores','Respeta los bordes redondeados y el notch, con diseño propio para el móvil en horizontal']],
