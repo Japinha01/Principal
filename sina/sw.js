@@ -1,7 +1,7 @@
 // Service worker do Sina: permite instalar como app e jogar sem internet.
 // Ao publicar uma versão nova, mude o número abaixo para os jogadores receberem a atualização.
-const VERSAO = 'sina-v19';
-const ARQUIVOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const VERSAO = 'sina-v20';
+const ARQUIVOS = ['./', './index.html', './manifest.json', './icon-32.png', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', ev => {
   ev.waitUntil(caches.open(VERSAO).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));

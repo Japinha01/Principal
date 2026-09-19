@@ -3,11 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sina</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>Sina — roguelite de cartas</title>
+<meta name="description" content="Sobreviva à horda, monte combos com cartas e derrote o Ceifador. Jogo de navegador gratuito, em 6 idiomas.">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1c1729">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sina">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sina">
+<meta property="og:title" content="Sina — roguelite de cartas">
+<meta property="og:description" content="Sobreviva à horda, monte combos com cartas e derrote o Ceifador. Grátis, no navegador, em 6 idiomas.">
+<meta property="og:url" content="https://japax01.com.br/sina/">
+<meta property="og:image" content="https://japax01.com.br/sina/og-capa.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sina — roguelite de cartas">
+<meta name="twitter:description" content="Sobreviva à horda, monte combos com cartas e derrote o Ceifador.">
+<meta name="twitter:image" content="https://japax01.com.br/sina/og-capa.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;700&family=Pirata+One&display=swap" rel="stylesheet">
@@ -5495,16 +5514,21 @@ addEventListener('appinstalled', ()=>{ promptInstalar = null; atualizarBotoesApp
 function registrarSW(){
   if(DESKTOP || window.SINA_BUILD === 'portal') return;
   try{
-    if('serviceWorker' in navigator && location.protocol === 'https:' && document.querySelector('link[rel="manifest"]'))
+    const seguro = location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname);
+    if('serviceWorker' in navigator && seguro && document.querySelector('link[rel="manifest"]'))
       navigator.serviceWorker.register('sw.js').catch(()=>{});
   }catch(e){}
 }
+const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const jaInstalado = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 function atualizarBotoesApp(){
-  $('#btnInstalar').hidden = !promptInstalar;
+  // no iPhone o navegador nunca oferece a instalação sozinho: mostramos o passo a passo
+  const podeIOS = ehIOS() && !jaInstalado() && !DESKTOP && location.protocol.startsWith('http');
+  $('#btnInstalar').hidden = !(promptInstalar || podeIOS);
   $('#btnSair').hidden = !DESKTOP;
 }
 $('#btnInstalar').onclick = async ()=>{
-  if(!promptInstalar) return;
+  if(!promptInstalar){ toast(tr('install_ios')); return; }
   promptInstalar.prompt();
   try{ await promptInstalar.userChoice; }catch(e){}
   promptInstalar = null; atualizarBotoesApp();
@@ -6592,7 +6616,7 @@ function grimExtra(aba){
 
 
 /* ---------- guia do jogo e notas de versão ---------- */
-const VERSAO_JOGO = '1.4.2';
+const VERSAO_JOGO = '1.4.3';
 const GUIA_STR = {
   pt:{g_tab_guia:'Como jogar', guia_intro:'Tudo o que o jogo tem, explicado em partes. Você não precisa decorar: as dicas também aparecem sozinhas quando cada coisa acontece pela primeira vez.',
       notas_titulo:'Notas de versão', notas_btn:'Novidades', notas_futuro:'Em breve', notas_atual:'Versão atual', notas_antiga:'Versões anteriores', novidade:'novo'},
@@ -6614,6 +6638,8 @@ const TORPOR_STR = {"pt": {"torpor": "Torpor x{n}", "ferida": "Ferida", "torpor_
 for(const l in TORPOR_STR) Object.assign(STR[l], TORPOR_STR[l]);
 const CURTO_STR = {"pt": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}, "en": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}, "es": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}, "ru": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}, "ja": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}, "ko": {"round_curto": "R{n}/{m} · {t}", "round_curto_inf": "R{n} · {t}"}};
 for(const l in CURTO_STR) Object.assign(STR[l], CURTO_STR[l]);
+const IOS_STR = {"pt": {"install_ios": "No iPhone: toque em Compartilhar e depois em \"Adicionar à Tela de Início\"."}, "en": {"install_ios": "On iPhone: tap Share and then \"Add to Home Screen\"."}, "es": {"install_ios": "En iPhone: toca Compartir y luego \"Añadir a pantalla de inicio\"."}, "ru": {"install_ios": "На iPhone: нажмите «Поделиться», затем «На экран «Домой»»."}, "ja": {"install_ios": "iPhoneでは、共有ボタンから「ホーム画面に追加」を選んでください。"}, "ko": {"install_ios": "아이폰에서는 공유 버튼을 누른 뒤 \"홈 화면에 추가\"를 선택하세요."}};
+for(const l in IOS_STR) Object.assign(STR[l], IOS_STR[l]);
 
 // [título, texto] por idioma
 const GUIA = [
@@ -6704,7 +6730,14 @@ const NOTAS = [
     ru:['Следующие обновления', ['Страница в Steam, демо и достижения','Новые биомы, боссы и классы','Ежедневный вызов с рейтингом','Оригинальный саундтрек']],
     ja:['次のアップデート', ['Steamページ、体験版、実績','新しいバイオーム、ボス、クラス','ランキング付きのデイリーチャレンジ','オリジナルサウンドトラック']],
     ko:['다음 업데이트', ['스팀 페이지, 데모, 도전 과제','새로운 지역, 보스, 직업','랭킹이 있는 일일 도전','오리지널 사운드트랙']]}},
-  {v:'1.4.2', tipo:'atual', t:{
+  {v:'1.4.3', tipo:'atual', t:{
+    pt:['App e compartilhamento', ['Ícone próprio na aba do navegador, em vários tamanhos','Instalação como app corrigida: manifesto em formato aceito pelos navegadores e passo a passo para iPhone','Link do jogo volta a mostrar capa, título e descrição ao ser compartilhado']],
+    en:['App and sharing', ['Proper tab icon in several sizes','App install fixed: manifest in the format browsers accept, plus step-by-step instructions for iPhone','Sharing the link shows the cover, title and description again']],
+    es:['App y compartir', ['Icono propio en la pestaña, en varios tamaños','Instalación como app corregida: manifiesto en el formato que aceptan los navegadores y guía para iPhone','Al compartir el enlace vuelve a mostrarse portada, título y descripción']],
+    ru:['Приложение и ссылки', ['Собственный значок вкладки в нескольких размерах','Установка как приложение исправлена: манифест в формате, который принимают браузеры, и инструкция для iPhone','Ссылка на игру снова показывает обложку, заголовок и описание']],
+    ja:['アプリと共有', ['タブ用アイコンを複数サイズで用意','アプリのインストールを修正：ブラウザが受け付ける形式のマニフェストと、iPhone向けの手順を追加','リンクを共有すると、カバー・タイトル・説明が再び表示されます']],
+    ko:['앱과 공유', ['여러 크기의 전용 탭 아이콘','앱 설치 수정: 브라우저가 허용하는 형식의 매니페스트와 아이폰용 안내 추가','링크를 공유하면 표지, 제목, 설명이 다시 표시됩니다']]}},
+  {v:'1.4.2', tipo:'antiga', t:{
     pt:['Nada morre fora da tela', ['As armas agora só miram no que cabe no campo de visão: no celular, 58% dos abates aconteciam fora da tela e passaram a ser nenhum','Adagas, chakrams e projéteis param na borda visível em vez de sumirem','Controles de volta ao tamanho anterior, só respeitando as bordas do aparelho']],
     en:['Nothing dies off-screen', ['Weapons now only target what fits on screen: on mobile 58% of kills happened off-screen and are now none','Daggers, chakrams and projectiles stop at the visible edge instead of flying away','Controls back to their previous size, just respecting the device edges']],
     es:['Nada muere fuera de pantalla', ['Las armas solo apuntan a lo que cabe en pantalla: en móvil el 58% de las bajas ocurrían fuera y ahora son ninguna','Dagas, chakrams y proyectiles se detienen en el borde visible en vez de perderse','Controles de vuelta a su tamaño anterior, respetando los bordes del dispositivo']],

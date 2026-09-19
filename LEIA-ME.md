@@ -11,8 +11,11 @@
 └── sina/
     ├── index.html             ← o jogo
     ├── privacidade.html       ← política de privacidade (preencha data e e-mail)
-    ├── manifest.webmanifest   ← dados do app instalável
+    ├── manifest.json          ← dados do app instalável
     ├── sw.js                  ← permite instalar e jogar sem internet
+    ├── og-capa.jpg            ← imagem que aparece ao compartilhar o link
+    ├── icon-32.png
+    ├── icon-180.png
     ├── icon-192.png
     └── icon-512.png
 ```
@@ -72,13 +75,20 @@ Com `adsenseClient` vazio, o jogo funciona sem anúncios. Com `lojaApi` vazio, o
 
 Abra o jogo com `?anuncios=teste` no fim do endereço. Todos os botões de anúncio aparecem e dão a recompensa na hora, sem mostrar nada.
 
-## 7. App instalável
+## 7. App instalável e compartilhamento
 
-No celular (Chrome/Edge) e no computador, aparece o botão **Instalar o app** no menu quando o navegador permite. O jogo instalado abre em tela cheia, com ícone próprio, e funciona sem internet (menos anúncios e compras).
+**Se o endereço do jogo não for `japax01.com.br/sina/`**, abra `sina/index.html` e troque o domínio nas linhas `og:url` e `og:image` do começo do arquivo. É o que faz o link mostrar capa, título e descrição no WhatsApp, Discord e redes sociais.
+
+**Se o ícone antigo continuar aparecendo** na aba ou o app não atualizar, force a recarga com Ctrl + Shift + R no computador. No celular, feche a aba e abra de novo. O `sw.js` guarda a versão antiga até trocar o número em `VERSAO`.
+
+**Importante:** apague os arquivos antigos `manifest.webmanifest` e `sw.js` que já estavam na pasta, para não conflitarem com os novos.
+
+
+No celular (Chrome/Edge) e no computador, aparece o botão **Instalar o app** no menu quando o navegador permite. No iPhone o botão também aparece, mas mostrando o passo a passo, porque a Apple não permite instalação automática. O jogo instalado abre em tela cheia, com ícone próprio, e funciona sem internet (menos anúncios e compras).
 
 Ao publicar uma versão nova do jogo, abra `sina/sw.js` e mude `VERSAO` (por exemplo de `sina-v8` para `sina-v9`), para os jogadores receberem a atualização.
 
-No iPhone, o botão não aparece (limitação da Apple): o jogador usa **Compartilhar → Adicionar à Tela de Início**.
+
 
 ## 8. Créditos obrigatórios
 
