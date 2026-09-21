@@ -132,8 +132,8 @@ Isso garante que cada jogador só acessa o próprio save.
 appleLogin: false,   // mude para true se ativar o Apple
 firebase: {
   apiKey: 'AIza...',
-  authDomain: 'sina-jogo.firebaseapp.com',
-  projectId: 'sina-jogo',
+  authDomain: 'sina-play.firebaseapp.com',
+  projectId: 'sina-play',
   appId: '1:123...:web:abc...'
 }
 ```
@@ -144,7 +144,7 @@ O objeto `firebase` precisa ficar dentro de `window.SINA_CONFIG`. Com `firebase:
 
 Para ativar Apple, além de `appleLogin: true`, configure o provedor Apple no Firebase e crie no Apple Developer a chave, o Service ID e as URLs de retorno exigidas pelo Firebase. Sem essa configuração, deixe `appleLogin: false`.
 
-**Custo:** a camada gratuita do Firebase cobre com folga um jogo pequeno (50 mil leituras e 20 mil gravações por dia).
+**Custo:** o projeto pode permanecer no plano Spark, sem custo financeiro inicial, respeitando os limites e cotas atuais do Firebase. Monitore o uso no Console, pois limites e políticas podem mudar.
 
 ## 9. Créditos obrigatórios
 
