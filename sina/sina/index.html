@@ -427,16 +427,24 @@ body.gp .card.gp-foco{transform:translateY(-10px)}
   #btnSkill{width:58px;height:58px;bottom:18px;right:92px}
   .hudtopo{padding:2px 8px 0}
 }
+.conta-chip{margin:-.3rem 0 0;color:var(--osso2);font-size:.9rem}
+#conflito .cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:1rem}
+#conflito .card{width:min(300px,44vw)}
+.resumo{list-style:none;padding:0;margin:.4rem 0;line-height:1.6;color:var(--osso2)}
 </style>
 <script>
-/* ============================================================
-   CONFIGURAÇÃO DO SITE — edite só este bloco
-   ============================================================ */
 window.SINA_CONFIG = {
-  adsenseClient: '',   // quando o AdSense aprovar, troque por 'ca-pub-8512588310449760'
-  adsenseTest: true,   // deixe true enquanto testa; mude para false depois que o AdSense aprovar
-  lojaApi: '/api',     // endereço das funções de pagamento, ex.: '/api' (vazio = Tesouro escondido)
-  privacidade: '/sina/privacidade.html'  // link da política de privacidade, ex.: '/sina/privacidade.html'
+  adsenseClient: '',
+  adsenseTest: true,
+  lojaApi: '/api',
+  privacidade: '/sina/privacidade.html',
+  appleLogin: false,
+  firebase: {
+    apiKey: 'AIzaSyAE-rSMCgZqalgLxyFCTQQfml-5HkRijTc',
+    authDomain: 'sina-play.firebaseapp.com',
+    projectId: 'sina-play',
+    appId: '1:812584058258:web:ece5ba50eedfe84371954b'
+  }
 };
 </script>
 <style>
@@ -525,6 +533,7 @@ body.sobreposto #hud{visibility:hidden}
     <button class="btn primario" id="btnJogar" data-i18n="m_play"></button>
     <button class="btn" id="btnReli" data-i18n="m_reli"></button>
     <button class="btn" id="btnArsenal" data-i18n="m_arsenal"></button>
+    <button class="btn" id="btnConta" hidden data-i18n="m_conta"></button>
     <button class="btn" id="btnGrim" data-i18n="m_grim"></button>
     <button class="btn" id="btnOpts" data-i18n="m_opts"></button>
     <button class="btn tesouro" id="btnLoja" hidden data-i18n="m_store"></button>
@@ -542,6 +551,7 @@ body.sobreposto #hud{visibility:hidden}
   </div>
   <p class="almas" id="menuAlmas"></p>
   <p class="apoiador" id="selo" hidden>✦ <span data-i18n="supporter"></span></p>
+  <p class="conta-chip" id="contaChip" hidden></p>
   <p class="ajuda" data-i18n="m_help"></p>
 </section>
 
@@ -602,6 +612,21 @@ body.sobreposto #hud{visibility:hidden}
     <div id="lojaConteudo"></div>
     <div class="acoes" style="margin:1.4rem 0 1rem">
       <button class="btn" id="lojaVoltar" data-i18n="back"></button>
+    </div>
+  </div>
+</section>
+
+<section id="conflito" class="screen alto" hidden>
+  <h2 data-i18n="conflito_titulo"></h2>
+  <div id="conflitoConteudo"></div>
+</section>
+
+<section id="conta" class="screen alto" hidden>
+  <div class="painel">
+    <h2 data-i18n="conta_titulo"></h2>
+    <div id="contaConteudo"></div>
+    <div class="acoes rodape">
+      <button class="btn primario" id="contaVoltar" data-i18n="back"></button>
     </div>
   </div>
 </section>
@@ -4560,6 +4585,7 @@ function endRun(quit){
   G.lootMostrado = (G.lootMostrado || []).concat(achados);
   $('#deadLoot').innerHTML = G.lootMostrado.length ? `<p class="desc">${tr('loot_title')}</p><div class="eq-grade pequena">${G.lootMostrado.map(it=>`<span class="eq-item" title="${nomeItem(it)}">${iconeItem(it)}</span>`).join('')}</div>` : '';
   persist();
+  if(CONTA.user) agendarEnvio();
   $('#deadTitulo').textContent = tr(G.won ? 'dead_title_win' : 'dead_title');
   $('#deadStats').innerHTML = `
     <div><dt>${tr('th_time')}</dt><dd>${fmtTime(G.time)}</dd></div>
@@ -4691,7 +4717,7 @@ $('#grim .abas').addEventListener('click', ev=>{
 });
 
 /* ---------- telas ---------- */
-const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','prologo','bonus','level','shop','trial','pause','win','dead'];
+const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','conta','conflito','prologo','bonus','level','shop','trial','pause','win','dead'];
 function showOnly(id){ for(const s of SCREENS) $('#'+s).hidden = s!==id; if(id){ joyEnd(); $('#banner').classList.remove('on'); } document.body.classList.toggle('sobreposto', !!id); if(G) tutShow(); tipContexto(); if(id) gpAoMostrarTela(); }
 let jaJogou = false;
 function jogar(){ audioOn(); if(!SAVE.opt.prologoFeito){ iniciarPrologo(); return; } const tipo = jaJogou ? 'next' : 'start'; jaJogou = true; Portal.commercial(startRun, tipo, 'jogar'); }
@@ -4846,7 +4872,7 @@ $('#tutPular').onclick = ()=>{ if(G && G.tut) tutEnd(); };
 
 
 /* ---------- monetização: AdSense para Jogos, recompensas, aparências e Tesouro ---------- */
-const CFG = Object.assign({adsenseClient:'', adsenseTest:false, lojaApi:'', privacidade:''}, window.SINA_CONFIG || {});
+const CFG = Object.assign({adsenseClient:'', adsenseTest:false, lojaApi:'', privacidade:'', firebase:null, appleLogin:false}, window.SINA_CONFIG || {});
 
 const MON_STR = {
 pt:{
@@ -5437,7 +5463,7 @@ function gpVoltar(){
   const tela = gpTelaAtual(); if(!tela) return;
   const id = tela.id;
   if(id==='pause'){ unpause(); return; }
-  const mapa = {reli:'#reliVoltar', grim:'#grimVoltar', opts:'#optVoltar', loja:'#lojaVoltar', arsenal:'#arsVoltar', notas:'#notasVoltar'};
+  const mapa = {reli:'#reliVoltar', grim:'#grimVoltar', opts:'#optVoltar', loja:'#lojaVoltar', arsenal:'#arsVoltar', notas:'#notasVoltar', conta:'#contaVoltar'};
   if(mapa[id]) $(mapa[id]).click();
 }
 function pollGamepad(dt){
@@ -6629,7 +6655,7 @@ function grimExtra(aba){
 
 
 /* ---------- guia do jogo e notas de versão ---------- */
-const VERSAO_JOGO = '1.4.3';
+const VERSAO_JOGO = '1.5.0';
 const GUIA_STR = {
   pt:{g_tab_guia:'Como jogar', guia_intro:'Tudo o que o jogo tem, explicado em partes. Você não precisa decorar: as dicas também aparecem sozinhas quando cada coisa acontece pela primeira vez.',
       notas_titulo:'Notas de versão', notas_btn:'Novidades', notas_futuro:'Em breve', notas_atual:'Versão atual', notas_antiga:'Versões anteriores', novidade:'novo'},
@@ -6743,7 +6769,14 @@ const NOTAS = [
     ru:['Следующие обновления', ['Страница в Steam, демо и достижения','Новые биомы, боссы и классы','Ежедневный вызов с рейтингом','Оригинальный саундтрек']],
     ja:['次のアップデート', ['Steamページ、体験版、実績','新しいバイオーム、ボス、クラス','ランキング付きのデイリーチャレンジ','オリジナルサウンドトラック']],
     ko:['다음 업데이트', ['스팀 페이지, 데모, 도전 과제','새로운 지역, 보스, 직업','랭킹이 있는 일일 도전','오리지널 사운드트랙']]}},
-  {v:'1.4.3', tipo:'atual', t:{
+  {v:'1.5.0', tipo:'atual', t:{
+    pt:['Conta e save na nuvem', ['Entre com Google ou Apple e continue de onde parou em qualquer aparelho','Modo convidado para jogar sem conta, e vinculação depois sem perder nada','Ao entrar pela primeira vez com progresso dos dois lados, você escolhe qual manter','Envio automático para a nuvem no fim de cada partida']],
+    en:['Account and cloud save', ['Sign in with Google or Apple and continue where you left off on any device','Guest mode to play without an account, and link one later without losing anything','On your first sign-in with progress on both sides, you choose which one to keep','Automatic cloud upload at the end of each run']],
+    es:['Cuenta y guardado en la nube', ['Entra con Google o Apple y sigue donde lo dejaste en cualquier dispositivo','Modo invitado para jugar sin cuenta, y vincularla después sin perder nada','Al entrar por primera vez con progreso en ambos lados, tú eliges cuál conservar','Subida automática a la nube al final de cada partida']],
+    ru:['Аккаунт и облачное сохранение', ['Войдите через Google или Apple и продолжайте на любом устройстве','Гостевой режим для игры без аккаунта и привязка позже без потерь','При первом входе с прогрессом с обеих сторон вы сами выбираете, что оставить','Автоматическая отправка в облако в конце каждого забега']],
+    ja:['アカウントとクラウドセーブ', ['GoogleまたはAppleでログインすれば、どの端末でも続きから遊べます','アカウントなしで遊べるゲストモードと、あとから連携しても失われない進行状況','初回ログイン時に両方へ進行状況がある場合は、どちらを残すか選べます','プレイ終了時にクラウドへ自動アップロード']],
+    ko:['계정과 클라우드 저장', ['구글 또는 애플로 로그인하면 어느 기기에서나 이어서 할 수 있습니다','계정 없이 즐기는 게스트 모드와, 나중에 연결해도 잃지 않는 진행 상황','처음 로그인할 때 양쪽에 진행 상황이 있으면 어느 쪽을 유지할지 고릅니다','판이 끝날 때마다 클라우드에 자동 업로드']]}},
+  {v:'1.4.3', tipo:'antiga', t:{
     pt:['App e compartilhamento', ['Ícone próprio na aba do navegador, em vários tamanhos','Instalação como app corrigida: manifesto em formato aceito pelos navegadores e passo a passo para iPhone','Link do jogo volta a mostrar capa, título e descrição ao ser compartilhado']],
     en:['App and sharing', ['Proper tab icon in several sizes','App install fixed: manifest in the format browsers accept, plus step-by-step instructions for iPhone','Sharing the link shows the cover, title and description again']],
     es:['App y compartir', ['Icono propio en la pestaña, en varios tamaños','Instalación como app corregida: manifiesto en el formato que aceptan los navegadores y guía para iPhone','Al compartir el enlace vuelve a mostrarse portada, título y descripción']],
@@ -7197,6 +7230,305 @@ function diarioHtml(){
   return h + '</div>';
 }
 
+
+/* ---------- conta: login com Google e save na nuvem (Firebase) ---------- */
+const CONTA_STR = {
+  pt:{m_conta:'Conta', conta_titulo:'Conta e nuvem', conta_sub:'Entre com o Google para guardar seu progresso na nuvem e continuar em qualquer aparelho.',
+      conta_entrar:'Entrar com Google', conta_sair:'Sair da conta', conta_sinc:'Sincronizar agora', conta_enviar:'Enviar meu progresso', conta_baixar:'Baixar da nuvem',
+      conta_logado:'Conectado como {n}', conta_deslogado:'Você não está conectado.', conta_ultima:'Última sincronização: {t}', conta_nunca:'Ainda não sincronizado.',
+      conta_ok:'Progresso sincronizado.', conta_enviado:'Progresso enviado para a nuvem.', conta_baixado:'Progresso baixado da nuvem.',
+      conta_erro:'Não foi possível falar com a nuvem. Tente de novo mais tarde.', conta_entrando:'Abrindo o login...', conta_saiu:'Você saiu da conta.',
+      conta_nuvem_maior:'A nuvem tinha um progresso maior, então ele foi usado.', conta_local_maior:'Seu progresso deste aparelho era maior e foi enviado para a nuvem.',
+      conta_aviso:'Atenção: baixar da nuvem substitui o progresso deste aparelho.', conta_offline:'Sem conexão com a nuvem agora.'},
+  en:{m_conta:'Account', conta_titulo:'Account and cloud', conta_sub:'Sign in with Google to keep your progress in the cloud and continue on any device.',
+      conta_entrar:'Sign in with Google', conta_sair:'Sign out', conta_sinc:'Sync now', conta_enviar:'Upload my progress', conta_baixar:'Download from cloud',
+      conta_logado:'Signed in as {n}', conta_deslogado:'You are not signed in.', conta_ultima:'Last sync: {t}', conta_nunca:'Not synced yet.',
+      conta_ok:'Progress synced.', conta_enviado:'Progress uploaded to the cloud.', conta_baixado:'Progress downloaded from the cloud.',
+      conta_erro:'Could not reach the cloud. Please try again later.', conta_entrando:'Opening sign-in...', conta_saiu:'You signed out.',
+      conta_nuvem_maior:'The cloud had more progress, so it was used.', conta_local_maior:'This device had more progress, so it was uploaded.',
+      conta_aviso:'Careful: downloading from the cloud replaces the progress on this device.', conta_offline:'No cloud connection right now.'},
+  es:{m_conta:'Cuenta', conta_titulo:'Cuenta y nube', conta_sub:'Entra con Google para guardar tu progreso en la nube y continuar en cualquier dispositivo.',
+      conta_entrar:'Entrar con Google', conta_sair:'Cerrar sesión', conta_sinc:'Sincronizar ahora', conta_enviar:'Subir mi progreso', conta_baixar:'Bajar de la nube',
+      conta_logado:'Conectado como {n}', conta_deslogado:'No has iniciado sesión.', conta_ultima:'Última sincronización: {t}', conta_nunca:'Aún sin sincronizar.',
+      conta_ok:'Progreso sincronizado.', conta_enviado:'Progreso subido a la nube.', conta_baixado:'Progreso bajado de la nube.',
+      conta_erro:'No se pudo conectar con la nube. Inténtalo más tarde.', conta_entrando:'Abriendo el inicio de sesión...', conta_saiu:'Has cerrado sesión.',
+      conta_nuvem_maior:'La nube tenía más progreso, así que se usó ese.', conta_local_maior:'Este dispositivo tenía más progreso y se subió a la nube.',
+      conta_aviso:'Cuidado: bajar de la nube reemplaza el progreso de este dispositivo.', conta_offline:'Sin conexión con la nube ahora mismo.'},
+  ru:{m_conta:'Аккаунт', conta_titulo:'Аккаунт и облако', conta_sub:'Войдите через Google, чтобы хранить прогресс в облаке и продолжать на любом устройстве.',
+      conta_entrar:'Войти через Google', conta_sair:'Выйти', conta_sinc:'Синхронизировать', conta_enviar:'Отправить прогресс', conta_baixar:'Загрузить из облака',
+      conta_logado:'Вы вошли как {n}', conta_deslogado:'Вы не вошли в аккаунт.', conta_ultima:'Последняя синхронизация: {t}', conta_nunca:'Ещё не синхронизировано.',
+      conta_ok:'Прогресс синхронизирован.', conta_enviado:'Прогресс отправлен в облако.', conta_baixado:'Прогресс загружен из облака.',
+      conta_erro:'Не удалось связаться с облаком. Попробуйте позже.', conta_entrando:'Открываем вход...', conta_saiu:'Вы вышли из аккаунта.',
+      conta_nuvem_maior:'В облаке прогресс был больше, поэтому взят он.', conta_local_maior:'На этом устройстве прогресс был больше, поэтому он отправлен в облако.',
+      conta_aviso:'Внимание: загрузка из облака заменит прогресс на этом устройстве.', conta_offline:'Сейчас нет связи с облаком.'},
+  ja:{m_conta:'アカウント', conta_titulo:'アカウントとクラウド', conta_sub:'Googleでログインすると進行状況をクラウドに保存し、どの端末でも続きから遊べます。',
+      conta_entrar:'Googleでログイン', conta_sair:'ログアウト', conta_sinc:'今すぐ同期', conta_enviar:'進行状況をアップロード', conta_baixar:'クラウドから取得',
+      conta_logado:'{n} としてログイン中', conta_deslogado:'ログインしていません。', conta_ultima:'最終同期：{t}', conta_nunca:'まだ同期していません。',
+      conta_ok:'進行状況を同期しました。', conta_enviado:'進行状況をクラウドへ送信しました。', conta_baixado:'クラウドから進行状況を取得しました。',
+      conta_erro:'クラウドに接続できませんでした。後でもう一度お試しください。', conta_entrando:'ログイン画面を開いています...', conta_saiu:'ログアウトしました。',
+      conta_nuvem_maior:'クラウドの進行状況の方が進んでいたため、そちらを使いました。', conta_local_maior:'この端末の進行状況の方が進んでいたため、クラウドへ送信しました。',
+      conta_aviso:'注意：クラウドから取得すると、この端末の進行状況は上書きされます。', conta_offline:'今はクラウドに接続できません。'},
+  ko:{m_conta:'계정', conta_titulo:'계정과 클라우드', conta_sub:'구글로 로그인하면 진행 상황이 클라우드에 저장되어 어느 기기에서나 이어서 할 수 있습니다.',
+      conta_entrar:'구글로 로그인', conta_sair:'로그아웃', conta_sinc:'지금 동기화', conta_enviar:'내 진행 상황 올리기', conta_baixar:'클라우드에서 받기',
+      conta_logado:'{n}(으)로 로그인됨', conta_deslogado:'로그인하지 않았습니다.', conta_ultima:'마지막 동기화: {t}', conta_nunca:'아직 동기화하지 않았습니다.',
+      conta_ok:'진행 상황을 동기화했습니다.', conta_enviado:'진행 상황을 클라우드에 올렸습니다.', conta_baixado:'클라우드에서 진행 상황을 받았습니다.',
+      conta_erro:'클라우드에 연결하지 못했습니다. 나중에 다시 시도하세요.', conta_entrando:'로그인 창을 여는 중...', conta_saiu:'로그아웃했습니다.',
+      conta_nuvem_maior:'클라우드의 진행 상황이 더 많아 그것을 사용했습니다.', conta_local_maior:'이 기기의 진행 상황이 더 많아 클라우드에 올렸습니다.',
+      conta_aviso:'주의: 클라우드에서 받으면 이 기기의 진행 상황을 덮어씁니다.', conta_offline:'지금은 클라우드에 연결할 수 없습니다.'},
+};
+for(const l in CONTA_STR) Object.assign(STR[l], CONTA_STR[l]);
+const CONTA_STR2 = {"pt": {"conta_apple": "Entrar com Apple", "conta_guest": "Jogar como convidado", "conta_guest_aviso": "Como convidado, o progresso fica só neste aparelho e some se você limpar os dados do navegador. Vincule a uma conta quando quiser guardá-lo.", "conta_vincular": "Vincular a uma conta", "conta_vinculado": "Conta vinculada. Seu progresso foi mantido.", "conta_convidado": "Convidado", "conflito_titulo": "Dois progressos diferentes", "conflito_sub": "Você já jogou neste aparelho e esta conta já tem um progresso salvo. Qual quer manter? O outro será substituído.", "conflito_local": "Deste aparelho", "conflito_nuvem": "Da conta", "conflito_manter": "Manter este", "res_almas": "Almas: {n}", "res_missoes": "Missões: {n}", "res_tempo": "Melhor tempo: {t}", "res_itens": "Itens no baú: {n}"}, "en": {"conta_apple": "Sign in with Apple", "conta_guest": "Play as guest", "conta_guest_aviso": "As a guest, progress stays on this device only and is lost if you clear browser data. Link an account whenever you want to keep it.", "conta_vincular": "Link an account", "conta_vinculado": "Account linked. Your progress was kept.", "conta_convidado": "Guest", "conflito_titulo": "Two different saves", "conflito_sub": "You have played on this device and this account already has a save. Which one do you want to keep? The other will be replaced.", "conflito_local": "This device", "conflito_nuvem": "This account", "conflito_manter": "Keep this one", "res_almas": "Souls: {n}", "res_missoes": "Missions: {n}", "res_tempo": "Best time: {t}", "res_itens": "Items in stash: {n}"}, "es": {"conta_apple": "Entrar con Apple", "conta_guest": "Jugar como invitado", "conta_guest_aviso": "Como invitado, el progreso queda solo en este dispositivo y se pierde si borras los datos del navegador. Vincula una cuenta cuando quieras conservarlo.", "conta_vincular": "Vincular una cuenta", "conta_vinculado": "Cuenta vinculada. Tu progreso se mantuvo.", "conta_convidado": "Invitado", "conflito_titulo": "Dos progresos distintos", "conflito_sub": "Ya jugaste en este dispositivo y esta cuenta ya tiene un progreso guardado. ¿Cuál quieres conservar? El otro será reemplazado.", "conflito_local": "De este dispositivo", "conflito_nuvem": "De la cuenta", "conflito_manter": "Conservar este", "res_almas": "Almas: {n}", "res_missoes": "Misiones: {n}", "res_tempo": "Mejor tiempo: {t}", "res_itens": "Objetos en el cofre: {n}"}, "ru": {"conta_apple": "Войти через Apple", "conta_guest": "Играть как гость", "conta_guest_aviso": "В гостевом режиме прогресс хранится только на этом устройстве и пропадёт при очистке данных браузера. Привяжите аккаунт, когда захотите его сохранить.", "conta_vincular": "Привязать аккаунт", "conta_vinculado": "Аккаунт привязан. Прогресс сохранён.", "conta_convidado": "Гость", "conflito_titulo": "Два разных сохранения", "conflito_sub": "Вы уже играли на этом устройстве, и в аккаунте есть сохранение. Какое оставить? Второе будет заменено.", "conflito_local": "С устройства", "conflito_nuvem": "Из аккаунта", "conflito_manter": "Оставить это", "res_almas": "Души: {n}", "res_missoes": "Задания: {n}", "res_tempo": "Лучшее время: {t}", "res_itens": "Предметов в сундуке: {n}"}, "ja": {"conta_apple": "Appleでログイン", "conta_guest": "ゲストとして遊ぶ", "conta_guest_aviso": "ゲストの進行状況はこの端末だけに残り、ブラウザのデータを消すと失われます。残したくなったらアカウントと連携してください。", "conta_vincular": "アカウントと連携", "conta_vinculado": "アカウントを連携しました。進行状況はそのまま残っています。", "conta_convidado": "ゲスト", "conflito_titulo": "2つの進行状況", "conflito_sub": "この端末のプレイ記録と、このアカウントの保存データがあります。どちらを残しますか？もう一方は上書きされます。", "conflito_local": "この端末", "conflito_nuvem": "アカウント", "conflito_manter": "こちらを残す", "res_almas": "魂：{n}", "res_missoes": "ミッション：{n}", "res_tempo": "最高記録：{t}", "res_itens": "倉庫のアイテム：{n}"}, "ko": {"conta_apple": "애플로 로그인", "conta_guest": "게스트로 플레이", "conta_guest_aviso": "게스트는 진행 상황이 이 기기에만 남고 브라우저 데이터를 지우면 사라집니다. 보관하고 싶을 때 계정을 연결하세요.", "conta_vincular": "계정 연결하기", "conta_vinculado": "계정을 연결했습니다. 진행 상황은 그대로 유지됩니다.", "conta_convidado": "게스트", "conflito_titulo": "서로 다른 두 개의 저장", "conflito_sub": "이 기기에서 플레이한 기록과 이 계정의 저장 데이터가 있습니다. 어느 쪽을 유지할까요? 다른 쪽은 대체됩니다.", "conflito_local": "이 기기", "conflito_nuvem": "계정", "conflito_manter": "이걸 유지", "res_almas": "영혼: {n}", "res_missoes": "미션: {n}", "res_tempo": "최고 기록: {t}", "res_itens": "보관함 아이템: {n}"}};
+for(const l in CONTA_STR2) Object.assign(STR[l], CONTA_STR2[l]);
+
+const CONTA = {sdk:null, user:null, ocupado:false, entrando:false, ultima:0, pendente:false, msg:'', conflito:null, jaPerguntou:false};
+const contaLigada = () => !!(CFG.firebase && CFG.firebase.apiKey);
+
+// carrega o SDK do Firebase só quando o jogo está configurado para isso
+async function carregarSDK(){
+  if(CONTA.sdk) return CONTA.sdk;
+  if(window.SINA_FAKE_FIREBASE){ CONTA.sdk = window.SINA_FAKE_FIREBASE; return CONTA.sdk; }
+  const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const [app, auth, store] = await Promise.all([
+    import(base + 'firebase-app.js'),
+    import(base + 'firebase-auth.js'),
+    import(base + 'firebase-firestore.js'),
+  ]);
+  const aplicativo = app.initializeApp(CFG.firebase);
+  CONTA.sdk = {
+    auth: auth.getAuth(aplicativo),
+    db: store.getFirestore(aplicativo),
+    provider: new auth.GoogleAuthProvider(),
+    providerApple: new auth.OAuthProvider('apple.com'),
+    entrarAnonimo: auth.signInAnonymously,
+    vincular: auth.linkWithPopup,
+    entrar: auth.signInWithPopup,
+    entrarRedirect: auth.signInWithRedirect,
+    sair: auth.signOut,
+    aoMudar: auth.onAuthStateChanged,
+    doc: store.doc,
+    ler: store.getDoc,
+    gravar: store.setDoc,
+  };
+  return CONTA.sdk;
+}
+
+// quanto progresso um save representa, para decidir qual vale mais
+function pontuacaoSave(s){
+  if(!s) return -1;
+  const missoes = Object.keys(s.missions || {}).length;
+  const talentos = Object.values(s.arvore || {}).reduce((a,b)=>a+b, 0);
+  return missoes*2000 + talentos*300 + (s.bau ? s.bau.length*80 : 0)
+       + (s.almas || 0) + Math.round((s.best && s.best.time) || 0) + (s.runs ? s.runs.length*50 : 0);
+}
+function saveLimpo(){
+  const copia = JSON.parse(JSON.stringify(SAVE));
+  delete copia.avisoMigracao;
+  return copia;
+}
+function aplicarSave(novo){
+  for(const k of Object.keys(SAVE)) delete SAVE[k];
+  Object.assign(SAVE, novo);
+  persist();
+  LANG = SAVE.opt.lang || LANG;
+  applyStatic();
+  goMenu();
+}
+
+async function entrarConta(tipo){
+  if(!contaLigada() || CONTA.entrando) return;
+  CONTA.entrando = true;
+  contaMsg(tr('conta_entrando'));
+  try{
+    const s = await carregarSDK();
+    if(tipo === 'guest'){
+      await s.entrarAnonimo(s.auth);
+    } else {
+      const prov = tipo === 'apple' ? s.providerApple : s.provider;
+      const atual = s.auth.currentUser;
+      // convidado que entra numa conta leva o progresso junto
+      if(atual && atual.isAnonymous && s.vincular){
+        try{
+          await s.vincular(atual, prov);
+          contaMsg(tr('conta_vinculado'));
+          CONTA.entrando = false; renderConta();
+          await forcarEnvio();
+          return;
+        }catch(e){ /* a conta já existe: entra normalmente e o jogador escolhe qual save manter */ }
+      }
+      try{ await s.entrar(s.auth, prov); }
+      catch(e){ if(s.entrarRedirect) await s.entrarRedirect(s.auth, prov); else throw e; }
+    }
+  }catch(e){ contaMsg(tr('conta_erro')); }
+  CONTA.entrando = false;
+  renderConta();
+}
+async function sairConta(){
+  if(!CONTA.sdk) return;
+  try{ await CONTA.sdk.sair(CONTA.sdk.auth); }catch(e){}
+  CONTA.user = null;
+  contaMsg(tr('conta_saiu'));
+  renderConta();
+}
+function refDoSave(){
+  const s = CONTA.sdk;
+  return s.doc(s.db, 'saves', CONTA.user.uid);
+}
+async function lerNuvem(){
+  const snap = await CONTA.sdk.ler(refDoSave());
+  return snap && snap.exists && snap.exists() ? snap.data() : null;
+}
+async function enviarNuvem(){
+  await CONTA.sdk.gravar(refDoSave(), {save: saveLimpo(), quando: Date.now(), versao: VERSAO_JOGO});
+  CONTA.ultima = Date.now();
+}
+function resumoSave(sv){
+  return [tr('res_almas', {n:fmtN(sv.almas||0)}),
+          tr('res_missoes', {n:Object.keys(sv.missions||{}).length}),
+          tr('res_tempo', {t:fmtTime((sv.best && sv.best.time) || 0)}),
+          tr('res_itens', {n:(sv.bau||[]).length})];
+}
+function perguntarConflito(remoto){
+  CONTA.conflito = remoto;
+  const lado = (titulo, sv, acao, destaque) => `<div class="card ${destaque?'r3':'r1'}">
+      <div class="topo"><span>${titulo}</span></div>
+      <h3>${tr('res_almas', {n:fmtN(sv.almas||0)})}</h3>
+      <ul class="resumo">${resumoSave(sv).slice(1).map(x=>`<li>${x}</li>`).join('')}</ul>
+      <button class="btn peq primario" data-conflito="${acao}">${tr('conflito_manter')}</button>
+    </div>`;
+  $('#conflitoConteudo').innerHTML = `<p class="desc">${tr('conflito_sub')}</p><div class="cards">
+    ${lado(tr('conflito_local'), SAVE, 'local', pontuacaoSave(SAVE) >= pontuacaoSave(remoto.save))}
+    ${lado(tr('conflito_nuvem'), remoto.save, 'nuvem', pontuacaoSave(remoto.save) > pontuacaoSave(SAVE))}
+  </div>`;
+  showOnly('conflito');
+}
+async function resolverConflito(escolha){
+  const remoto = CONTA.conflito;
+  CONTA.conflito = null;
+  if(escolha === 'nuvem' && remoto){ aplicarSave(remoto.save); CONTA.ultima = Date.now(); toast(tr('conta_baixado')); }
+  else { await forcarEnvio(); goMenu(); }
+}
+async function sincronizar(manual){
+  if(!CONTA.user || CONTA.ocupado) return;
+  CONTA.ocupado = true;
+  try{
+    const remoto = await lerNuvem();
+    const pLocal = pontuacaoSave(SAVE), pNuvem = pontuacaoSave(remoto && remoto.save);
+    // os dois lados com progresso de verdade e diferentes: quem decide é o jogador
+    if(!manual && !CONTA.jaPerguntou && remoto && pLocal > 400 && pNuvem > 400 && Math.abs(pLocal - pNuvem) > 200){
+      CONTA.jaPerguntou = true;
+      CONTA.ocupado = false;
+      perguntarConflito(remoto);
+      return;
+    }
+    if(remoto && pNuvem > pLocal){
+      aplicarSave(remoto.save);
+      CONTA.ultima = Date.now();
+      contaMsg(tr('conta_nuvem_maior'));
+      if(manual) toast(tr('conta_baixado'));
+    } else {
+      await enviarNuvem();
+      contaMsg(remoto ? tr('conta_local_maior') : tr('conta_ok'));
+      if(manual) toast(tr('conta_enviado'));
+    }
+  }catch(e){ contaMsg(tr('conta_erro')); }
+  CONTA.ocupado = false;
+  renderConta();
+}
+async function forcarEnvio(){
+  if(!CONTA.user || CONTA.ocupado) return;
+  CONTA.ocupado = true;
+  try{ await enviarNuvem(); toast(tr('conta_enviado')); contaMsg(tr('conta_enviado')); }
+  catch(e){ contaMsg(tr('conta_erro')); }
+  CONTA.ocupado = false;
+  renderConta();
+}
+async function forcarBaixa(){
+  if(!CONTA.user || CONTA.ocupado) return;
+  CONTA.ocupado = true;
+  try{
+    const remoto = await lerNuvem();
+    if(remoto && remoto.save){ aplicarSave(remoto.save); CONTA.ultima = Date.now(); toast(tr('conta_baixado')); contaMsg(tr('conta_baixado')); }
+    else contaMsg(tr('conta_nunca'));
+  }catch(e){ contaMsg(tr('conta_erro')); }
+  CONTA.ocupado = false;
+  renderConta();
+}
+// salva na nuvem de tempos em tempos, sem atrapalhar a partida
+function agendarEnvio(){
+  if(!CONTA.user || CONTA.pendente) return;
+  CONTA.pendente = true;
+  setTimeout(async ()=>{
+    CONTA.pendente = false;
+    if(!CONTA.user || (G && G.mode === 'play')) { agendarEnvio(); return; }
+    try{ await enviarNuvem(); renderConta(); }catch(e){}
+  }, 45000);
+}
+
+function contaMsg(t){ CONTA.msg = t; const el = $('#contaMsg'); if(el) el.textContent = t; }
+function renderConta(){
+  const el = $('#contaConteudo');
+  if(!el) return;
+  const u = CONTA.user;
+  let h = `<p class="desc">${tr('conta_sub')}</p>`;
+  if(u){
+    const quando = CONTA.ultima ? new Date(CONTA.ultima).toLocaleString() : null;
+    const nome = u.isAnonymous ? tr('conta_convidado') : (u.displayName || u.email || '—');
+    h += `<p class="almas">${tr('conta_logado', {n:nome})}</p>
+      ${u.isAnonymous ? `<p class="desc">${tr('conta_guest_aviso')}</p>
+        <div class="acoes"><button class="btn peq primario" id="contaEntrar">${tr('conta_vincular')}</button>
+        ${CFG.appleLogin ? `<button class="btn peq" id="contaApple">${tr('conta_apple')}</button>` : ''}</div>` : ''}
+      <p class="desc">${quando ? tr('conta_ultima', {t:quando}) : tr('conta_nunca')}</p>
+      <div class="acoes">
+        <button class="btn peq primario" id="contaSinc">${tr('conta_sinc')}</button>
+        <button class="btn peq" id="contaEnviar">${tr('conta_enviar')}</button>
+        <button class="btn peq" id="contaBaixar">${tr('conta_baixar')}</button>
+        <button class="btn peq perigo" id="contaSair">${tr('conta_sair')}</button>
+      </div>
+      <p class="desc">${tr('conta_aviso')}</p>`;
+  } else {
+    h += `<p class="desc">${tr('conta_deslogado')}</p>
+      <div class="acoes">
+        <button class="btn primario" id="contaEntrar">${tr('conta_entrar')}</button>
+        ${CFG.appleLogin ? `<button class="btn" id="contaApple">${tr('conta_apple')}</button>` : ''}
+        <button class="btn" id="contaGuest">${tr('conta_guest')}</button>
+      </div>
+      <p class="desc">${tr('conta_guest_aviso')}</p>`;
+  }
+  h += `<p id="contaMsg" role="status">${CONTA.msg || ''}</p>`;
+  el.innerHTML = h;
+  const chip = $('#contaChip');
+  if(chip){ chip.hidden = !u; chip.textContent = u ? (u.displayName || u.email || '') : ''; }
+}
+$('#conta').addEventListener('click', ev=>{
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.id === 'contaEntrar') entrarConta('google');
+  else if(b.id === 'contaApple') entrarConta('apple');
+  else if(b.id === 'contaGuest') entrarConta('guest');
+  else if(b.id === 'contaSair') sairConta();
+  else if(b.id === 'contaSinc') sincronizar(true);
+  else if(b.id === 'contaEnviar') forcarEnvio();
+  else if(b.id === 'contaBaixar') forcarBaixa();
+  else if(b.id === 'contaVoltar') goMenu();
+});
+$('#btnConta').onclick = ()=>{ audioOn(); renderConta(); showOnly('conta'); };
+$('#conflito').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-conflito]');
+  if(b) resolverConflito(b.dataset.conflito);
+});
+
+async function iniciarConta(){
+  if(!contaLigada()) return;
+  $('#btnConta').hidden = false;
+  try{
+    const s = await carregarSDK();
+    s.aoMudar(s.auth, u => {
+      CONTA.user = u || null;
+      renderConta();
+      if(u) setTimeout(()=>{ sincronizar(false); agendarEnvio(); }, 0);
+    });
+  }catch(e){ /* sem internet ou configuração errada: o jogo segue normal */ }
+}
+
 /* ---------- início ---------- */
 LANG = SAVE.opt.lang || detectLang();
 if(DESKTOP){ CFG.adsenseClient = ''; CFG.lojaApi = ''; }
@@ -7205,6 +7537,7 @@ applyStatic();
 applyQuality();
 Portal.init();
 goMenu();
+iniciarConta();
 atualizarBotoesApp();
 registrarSW();
 if(DESKTOP) for(const id in SAVE.missions) if(SAVE.missions[id]) conquistaSteam(id);

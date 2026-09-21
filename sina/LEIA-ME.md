@@ -37,6 +37,8 @@ privacidade: '/sina/privacidade.html'
 
 Com `adsenseClient` vazio, o jogo funciona sem anúncios. Com `lojaApi` vazio, o Tesouro fica escondido.
 
+**Testar localmente:** abra a pasta do projeto no terminal e execute `python -m http.server 4173`. Depois acesse `http://127.0.0.1:4173/sina/`. Não abra o `index.html` da raiz: ele é uma cópia antiga; o jogo atualizado está em `sina/index.html`. O login e o Firestore dependem de um endereço local por HTTP ou HTTPS, não de `file://`.
+
 ## 3. Mercado Pago (compras)
 
 1. Entre em **Mercado Pago Developers → Suas integrações** e crie uma aplicação (Checkout Pro).
@@ -100,7 +102,51 @@ Ao publicar uma versão nova do jogo, abra `sina/sw.js` e mude `VERSAO` (por exe
 
 
 
-## 8. Créditos obrigatórios
+## 8. Login e save na nuvem (Firebase)
+
+1. Entre em **console.firebase.google.com** e crie ou abra o projeto usado pelo jogo (`sina-play`).
+2. Em **Criação → Authentication → Começar**, ative os métodos:
+  - **Google** (login principal)
+  - **Anônimo** (modo convidado)
+  - **Apple** (opcional; exige configuração adicional no Apple Developer Program)
+3. Em **Authentication → Settings → Domínios autorizados**, adicione o domínio do site, por exemplo `japax01.com.br`.
+4. Em **Criação → Firestore Database**, crie o banco em modo produção e cole estas regras em **Regras**:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /saves/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+
+Isso garante que cada jogador só acessa o próprio save.
+
+5. Em **Configurações do projeto → Seus apps → Web**, registre um app e confira o objeto de configuração.
+6. No bloco **CONFIGURAÇÃO DO SITE** do `sina/index.html`, mantenha ou substitua estes dados pelos do seu app Web:
+
+```js
+appleLogin: false,   // mude para true se ativar o Apple
+firebase: {
+  apiKey: 'AIza...',
+  authDomain: 'sina-jogo.firebaseapp.com',
+  projectId: 'sina-jogo',
+  appId: '1:123...:web:abc...'
+}
+```
+
+O objeto `firebase` precisa ficar dentro de `window.SINA_CONFIG`. Com `firebase: null` ou sem `apiKey`, o botão Conta some do menu e o jogo funciona só com o save local. A configuração Web do Firebase pode ficar no código do navegador; as regras do Firestore são o que protegem os saves.
+
+**Como funciona para o jogador:** ele pode entrar com Google ou jogar como convidado. O convidado começa com autenticação anônima e o progresso fica associado ao navegador até vincular uma conta. Quando há progresso relevante diferente no aparelho e na conta, o jogo **pergunta qual manter**; em casos simples, usa automaticamente o progresso mais avançado. O envio para a nuvem é automático quando o jogo está fora da partida e também pode ser feito pelos botões **Sincronizar agora** e **Enviar meu progresso**. Quem joga como convidado pode vincular Google ou Apple depois sem perder o progresso.
+
+Para ativar Apple, além de `appleLogin: true`, configure o provedor Apple no Firebase e crie no Apple Developer a chave, o Service ID e as URLs de retorno exigidas pelo Firebase. Sem essa configuração, deixe `appleLogin: false`.
+
+**Custo:** a camada gratuita do Firebase cobre com folga um jogo pequeno (50 mil leituras e 20 mil gravações por dia).
+
+## 9. Créditos obrigatórios
 
 Já estão em Opções → Créditos:
 - Super Pixel Effects Gigapack — Will Tice / unTied Games (crédito exigido pela licença)
