@@ -1,6 +1,6 @@
 // Service worker do Sina: permite instalar como app e jogar sem internet.
 // Ao publicar uma versão nova, mude o número abaixo para os jogadores receberem a atualização.
-const VERSAO = 'sina-v22';
+const VERSAO = 'sina-v23';
 const ARQUIVOS = ['./', './index.html', './manifest.json', './icon-32.png', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', ev => {

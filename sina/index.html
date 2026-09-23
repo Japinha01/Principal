@@ -431,23 +431,45 @@ body.gp .card.gp-foco{transform:translateY(-10px)}
 #conflito .cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:1rem}
 #conflito .card{width:min(300px,44vw)}
 .resumo{list-style:none;padding:0;margin:.4rem 0;line-height:1.6;color:var(--osso2)}
+.estrelas{display:flex;gap:4px}
+.estrela{font-size:1.8rem;line-height:1;color:var(--linha);background:none;border:none;padding:0 2px}
+.estrela.on{color:var(--vela);text-shadow:0 0 10px rgba(242,181,68,.5)}
+#feedback textarea,#feedback input{width:100%;background:var(--tinta);border:1px solid var(--linha);border-radius:8px;color:var(--osso);padding:.6em .8em;font:inherit;resize:vertical}
+#feedback .opt{display:block}
+#feedback .opt label{display:block;margin-bottom:.3rem}
+#fbMsg{min-height:1.4em;color:var(--vela)}
+#contaInicio .painel{max-width:520px;text-align:center}
+#contaInicio .acoes{flex-direction:column;align-items:stretch;gap:.5rem;margin:1rem 0}
 </style>
 <script>
+/* ============================================================
+   CONFIGURAÇÃO DO SITE — edite só este bloco
+   ============================================================ */
 window.SINA_CONFIG = {
-  adsenseClient: '',
-  adsenseTest: true,
-  lojaApi: '/api',
-  privacidade: '/sina/privacidade.html',
-  appleLogin: false,
+  adsenseClient: '',   // quando o AdSense aprovar, troque por 'ca-pub-8512588310449760'
+  adsenseTest: true,   // deixe true enquanto testa; mude para false depois que o AdSense aprovar
+  lojaApi: '/api',     // endereço das funções de pagamento, ex.: '/api' (vazio = Tesouro escondido)
+  privacidade: '',     // link da política de privacidade, ex.: '/sina/privacidade.html'
+
+  // Login com Google e save na nuvem. Cole aqui a configuração do seu projeto no Firebase.
+  // Deixe como null para desligar a conta (o botão some do menu).
+  appleLogin: false,   // true depois de configurar o Sign in with Apple no Firebase
   firebase: {
-    apiKey: "AIzaSyAE-rSMCgZqalgLxyFCTQQfml-5HkRijTc",
-    authDomain: "sina-play.firebaseapp.com",
-    projectId: "sina-play",
-    storageBucket: "sina-play.firebasestorage.app",
-    messagingSenderId: "812584058258",
-    appId: "1:812584058258:web:ece5ba50eedfe84371954b",
-    measurementId: "G-8541CH4SX9"
+    apiKey: 'AIzaSyAE-rSMCgZqalgLxyFCTQQfml-5HkRijTc',
+    authDomain: 'sina-play.firebaseapp.com',
+    projectId: 'sina-play',
+    storageBucket: 'sina-play.firebasestorage.app',
+    messagingSenderId: '812584058258',
+    appId: '1:812584058258:web:ece5ba50eedfe84371954b'
   }
+  /* exemplo:
+  firebase: {
+    apiKey: 'AIza...',
+    authDomain: 'sina-jogo.firebaseapp.com',
+    projectId: 'sina-jogo',
+    appId: '1:123456789:web:abc123'
+  }
+  */
 };
 </script>
 <style>
@@ -536,7 +558,6 @@ body.sobreposto #hud{visibility:hidden}
     <button class="btn primario" id="btnJogar" data-i18n="m_play"></button>
     <button class="btn" id="btnReli" data-i18n="m_reli"></button>
     <button class="btn" id="btnArsenal" data-i18n="m_arsenal"></button>
-    <button class="btn" id="btnConta" hidden data-i18n="m_conta"></button>
     <button class="btn" id="btnGrim" data-i18n="m_grim"></button>
     <button class="btn" id="btnOpts" data-i18n="m_opts"></button>
     <button class="btn tesouro" id="btnLoja" hidden data-i18n="m_store"></button>
@@ -622,6 +643,23 @@ body.sobreposto #hud{visibility:hidden}
 <section id="conflito" class="screen alto" hidden>
   <h2 data-i18n="conflito_titulo"></h2>
   <div id="conflitoConteudo"></div>
+</section>
+
+<section id="contaInicio" class="screen" hidden>
+  <div class="painel">
+    <h2 data-i18n="inicio_titulo"></h2>
+    <div id="inicioConteudo"></div>
+  </div>
+</section>
+
+<section id="feedback" class="screen alto" hidden>
+  <div class="painel">
+    <h2 data-i18n="fb_titulo"></h2>
+    <div id="fbConteudo"></div>
+    <div class="acoes rodape">
+      <button class="btn" id="fbVoltar" data-i18n="back"></button>
+    </div>
+  </div>
 </section>
 
 <section id="conta" class="screen alto" hidden>
@@ -2651,7 +2689,7 @@ function startRun(){
   tip('skill');
   startRound(1);
 }
-function need(l){ const b = 4 + l*5 + Math.pow(l,2.05)*0.6; return Math.floor(l>35 ? b*(1+(l-35)*0.1) : b); }
+function need(l){ const b = 6 + l*8 + Math.pow(l, 2.45)*0.85; return Math.floor(l > 22 ? b*(1 + (l-22)*0.07) : b); }
 function recalcSyn(){
   const s = {};
   for(const w of G.weapons){ const k=WEAPONS[w.id].tag; s[k]=(s[k]||0)+1; }
@@ -2724,8 +2762,8 @@ function randomEnemyNear(range){
 
 /* ---------- inimigos ---------- */
 function hpScale(t){
-  let s = 1 + t/60*0.5;
-  if(t>480) s *= 1 + Math.pow((t-480)/60, 1.5)*0.3;
+  let s = 1 + t/60*0.85;
+  if(t>240) s *= 1 + Math.pow((t-240)/60, 1.5)*0.35;
   return s;
 }
 function viewR(){ const Z=zoom(); return Math.hypot(W/Z,H/Z)/2 + 40; }
@@ -2745,7 +2783,7 @@ function spawnEnemy(typeId, opt){
   }
   const hs = hpScale(G.time) * curseHp() * G.heat * (1 + G.round*0.06) * (G.trial==='pedra'?1.5:1);
   const e = {type:typeId, x, y, hp:T.hp*hs,
-    spd:T.spd*(1+Math.min(0.4,G.time/900)), dmg:T.dmg*(1+G.time/340)*curseDmg()*Math.pow(G.heat,0.45), r:T.r, xp:T.xp, cor:T.cor,
+    spd:T.spd*(1+Math.min(0.55,G.time/700)), dmg:T.dmg*(1+G.time/240)*curseDmg()*Math.pow(G.heat,0.45), r:T.r, xp:T.xp, cor:T.cor,
     slow:0, frozen:0, flash:0, orbCd:0, kx:0, ky:0, seed:Math.random()*10, dead:false,
     psnT:0, psnD:0, psnTick:0, brnT:0, brnD:0, brnTick:0, brnTag:'fogo', frostCd:0, atk:rnd(1,2.5), dashT:0, dx:0, dy:0, fuse:-1};
   if(opt.elite){
@@ -2794,12 +2832,12 @@ function updateSpawns(dt){
   if(G.waveT <= 0 && !G.prologo && G.time > 20){ G.waveT = ONDA_LEN; proximaOnda(); }
   if(G.enemies.length < 440){
     const mare = G.evt==='mare' ? 2 : 1;
-    G.spawnAcc += dt * (G.tut && !G.tut.done ? 0.5 : (G.prologo ? 2.6 : G.round===1 ? 0.8 : 1)) * Math.min(45, (1.1 + G.time/16) * Math.sqrt(G.heat)) * (1 + G.curse*0.1) * mare * (G.trial==='horda'?1.6:1);
+    G.spawnAcc += dt * (G.tut && !G.tut.done ? 0.5 : (G.prologo ? 2.6 : G.round===1 ? 0.8 : 1)) * Math.min(60, (1.3 + G.time/11) * Math.sqrt(G.heat)) * (1 + G.curse*0.1) * mare * (G.trial==='horda'?1.6:1);
     while(G.spawnAcc >= 1){ G.spawnAcc -= 1; spawnEnemy(pickType()); }
   } else G.spawnAcc = 0;
   // elites surgem por tempo, não por quantidade de inimigos
   G.eliteT -= dt;
-  if(G.eliteT<=0){ G.eliteT = G.trial==='elites' ? 3 : 9; spawnEnemy(pickType(), {elite:true}); }
+  if(G.eliteT<=0){ G.eliteT = G.trial==='elites' ? 3 : Math.max(5, 9 - G.round*0.4); spawnEnemy(pickType(), {elite:true}); }
   if(G.time >= G.nextHorde){
     G.nextHorde += 60;
     const n = Math.min(60, Math.floor(10 + G.time/8)), typ = pickType();
@@ -4720,7 +4758,7 @@ $('#grim .abas').addEventListener('click', ev=>{
 });
 
 /* ---------- telas ---------- */
-const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','conta','conflito','prologo','bonus','level','shop','trial','pause','win','dead'];
+const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','conta','contaInicio','feedback','conflito','prologo','bonus','level','shop','trial','pause','win','dead'];
 function showOnly(id){ for(const s of SCREENS) $('#'+s).hidden = s!==id; if(id){ joyEnd(); $('#banner').classList.remove('on'); } document.body.classList.toggle('sobreposto', !!id); if(G) tutShow(); tipContexto(); if(id) gpAoMostrarTela(); }
 let jaJogou = false;
 function jogar(){ audioOn(); if(!SAVE.opt.prologoFeito){ iniciarPrologo(); return; } const tipo = jaJogou ? 'next' : 'start'; jaJogou = true; Portal.commercial(startRun, tipo, 'jogar'); }
@@ -4824,6 +4862,8 @@ function renderOpts(){
       <button class="btn peq" id="optTela">${tr('o_fullscreen')}</button>
       <button class="btn peq" id="optTut">${tr('o_tut')}</button>
       ${optReturn==='menu' ? `<button class="btn peq" id="optProl">${tr('o_prologue')}</button>` : ''}
+      ${contaLigada() ? `<button class="btn peq" id="optConta">${tr('o_conta')}</button>` : ''}
+      ${contaLigada() ? `<button class="btn peq" id="optFeedback">${tr('o_feedback')}</button>` : ''}
       ${optReturn==='menu' ? `<button class="btn peq perigo" id="optReset">${resetArmed ? tr('o_reset_confirm') : tr('o_reset')}</button>` : ''}
     </div>
     <p id="optMsg" role="status">${optMsg}</p>
@@ -4843,6 +4883,8 @@ $('#opts').addEventListener('click', ev=>{
   else if(d.nums !== undefined){ o.nums = d.nums==='1'; }
   else if(d.rapido !== undefined){ o.rapido = d.rapido==='1'; }
   else if(b.id==='optTela'){ alternarTelaCheia(); return; }
+  else if(b.id==='optConta'){ abrirConta(); return; }
+  else if(b.id==='optFeedback'){ FB.nota = 0; renderFeedback(); showOnly('feedback'); return; }
   else if(b.id==='optProl'){ o.prologoFeito = false; o.tutorialDone = false; optMsg = tr('o_prologue_ok'); }
   else if(b.id==='optTut'){ o.tutorialDone = false; SAVE.tips = {}; optMsg = tr('o_tut_done'); }
   else if(b.id==='optReset'){
@@ -6658,7 +6700,7 @@ function grimExtra(aba){
 
 
 /* ---------- guia do jogo e notas de versão ---------- */
-const VERSAO_JOGO = '1.5.0';
+const VERSAO_JOGO = '1.6.0';
 const GUIA_STR = {
   pt:{g_tab_guia:'Como jogar', guia_intro:'Tudo o que o jogo tem, explicado em partes. Você não precisa decorar: as dicas também aparecem sozinhas quando cada coisa acontece pela primeira vez.',
       notas_titulo:'Notas de versão', notas_btn:'Novidades', notas_futuro:'Em breve', notas_atual:'Versão atual', notas_antiga:'Versões anteriores', novidade:'novo'},
@@ -6772,7 +6814,14 @@ const NOTAS = [
     ru:['Следующие обновления', ['Страница в Steam, демо и достижения','Новые биомы, боссы и классы','Ежедневный вызов с рейтингом','Оригинальный саундтрек']],
     ja:['次のアップデート', ['Steamページ、体験版、実績','新しいバイオーム、ボス、クラス','ランキング付きのデイリーチャレンジ','オリジナルサウンドトラック']],
     ko:['다음 업데이트', ['스팀 페이지, 데모, 도전 과제','새로운 지역, 보스, 직업','랭킹이 있는 일일 도전','오리지널 사운드트랙']]}},
-  {v:'1.5.0', tipo:'atual', t:{
+  {v:'1.6.0', tipo:'atual', t:{
+    pt:['Mais difícil e com feedback', ['Nível sobe bem mais devagar: aos 2 minutos você chega ao 6 em vez do 13','Inimigos ficam fortes mais cedo, em maior número e com elites mais frequentes','Ao abrir o jogo pela primeira vez, você escolhe entrar com conta ou jogar como convidado','Conta e save na nuvem foram para as Opções, junto com o novo envio de feedback']],
+    en:['Harder, with feedback', ['Levels come much slower: at 2 minutes you reach level 6 instead of 13','Enemies get strong earlier, in bigger numbers and with more frequent elites','On your first launch you choose between signing in and playing as a guest','Account and cloud save moved to Options, along with the new feedback form']],
+    es:['Más difícil y con comentarios', ['Subir de nivel es mucho más lento: a los 2 minutos llegas al 6 en vez del 13','Los enemigos se fortalecen antes, en mayor número y con élites más frecuentes','Al abrir el juego por primera vez eliges entre entrar con cuenta o jugar como invitado','Cuenta y guardado en la nube pasaron a Opciones, junto al nuevo envío de comentarios']],
+    ru:['Сложнее и с отзывами', ['Уровни растут гораздо медленнее: к 2 минутам вы на 6-м, а не на 13-м','Враги усиливаются раньше, их больше, и элита появляется чаще','При первом запуске вы выбираете: войти в аккаунт или играть гостем','Аккаунт и облачное сохранение переехали в настройки вместе с формой отзыва']],
+    ja:['難易度アップとフィードバック', ['レベルの上がり方を大幅に緩やかに：2分時点で13ではなく6に','敵が早い段階から強くなり、数も増え、エリートの出現も頻繁に','初回起動時に、ログインするかゲストで遊ぶかを選べます','アカウントとクラウドセーブは設定へ移動、新しいフィードバック送信も設定から']],
+    ko:['더 어렵게, 그리고 피드백', ['레벨이 훨씬 느리게 오릅니다: 2분에 13이 아니라 6','적이 더 일찍 강해지고, 수도 많아지며, 정예도 더 자주 나옵니다','처음 실행할 때 로그인할지 게스트로 플레이할지 고릅니다','계정과 클라우드 저장은 설정으로 이동했고, 새 피드백 보내기도 설정에 있습니다']]}},
+  {v:'1.5.0', tipo:'antiga', t:{
     pt:['Conta e save na nuvem', ['Entre com Google ou Apple e continue de onde parou em qualquer aparelho','Modo convidado para jogar sem conta, e vinculação depois sem perder nada','Ao entrar pela primeira vez com progresso dos dois lados, você escolhe qual manter','Envio automático para a nuvem no fim de cada partida']],
     en:['Account and cloud save', ['Sign in with Google or Apple and continue where you left off on any device','Guest mode to play without an account, and link one later without losing anything','On your first sign-in with progress on both sides, you choose which one to keep','Automatic cloud upload at the end of each run']],
     es:['Cuenta y guardado en la nube', ['Entra con Google o Apple y sigue donde lo dejaste en cualquier dispositivo','Modo invitado para jugar sin cuenta, y vincularla después sin perder nada','Al entrar por primera vez con progreso en ambos lados, tú eliges cuál conservar','Subida automática a la nube al final de cada partida']],
@@ -7282,6 +7331,8 @@ const CONTA_STR = {
 for(const l in CONTA_STR) Object.assign(STR[l], CONTA_STR[l]);
 const CONTA_STR2 = {"pt": {"conta_apple": "Entrar com Apple", "conta_guest": "Jogar como convidado", "conta_guest_aviso": "Como convidado, o progresso fica só neste aparelho e some se você limpar os dados do navegador. Vincule a uma conta quando quiser guardá-lo.", "conta_vincular": "Vincular a uma conta", "conta_vinculado": "Conta vinculada. Seu progresso foi mantido.", "conta_convidado": "Convidado", "conflito_titulo": "Dois progressos diferentes", "conflito_sub": "Você já jogou neste aparelho e esta conta já tem um progresso salvo. Qual quer manter? O outro será substituído.", "conflito_local": "Deste aparelho", "conflito_nuvem": "Da conta", "conflito_manter": "Manter este", "res_almas": "Almas: {n}", "res_missoes": "Missões: {n}", "res_tempo": "Melhor tempo: {t}", "res_itens": "Itens no baú: {n}"}, "en": {"conta_apple": "Sign in with Apple", "conta_guest": "Play as guest", "conta_guest_aviso": "As a guest, progress stays on this device only and is lost if you clear browser data. Link an account whenever you want to keep it.", "conta_vincular": "Link an account", "conta_vinculado": "Account linked. Your progress was kept.", "conta_convidado": "Guest", "conflito_titulo": "Two different saves", "conflito_sub": "You have played on this device and this account already has a save. Which one do you want to keep? The other will be replaced.", "conflito_local": "This device", "conflito_nuvem": "This account", "conflito_manter": "Keep this one", "res_almas": "Souls: {n}", "res_missoes": "Missions: {n}", "res_tempo": "Best time: {t}", "res_itens": "Items in stash: {n}"}, "es": {"conta_apple": "Entrar con Apple", "conta_guest": "Jugar como invitado", "conta_guest_aviso": "Como invitado, el progreso queda solo en este dispositivo y se pierde si borras los datos del navegador. Vincula una cuenta cuando quieras conservarlo.", "conta_vincular": "Vincular una cuenta", "conta_vinculado": "Cuenta vinculada. Tu progreso se mantuvo.", "conta_convidado": "Invitado", "conflito_titulo": "Dos progresos distintos", "conflito_sub": "Ya jugaste en este dispositivo y esta cuenta ya tiene un progreso guardado. ¿Cuál quieres conservar? El otro será reemplazado.", "conflito_local": "De este dispositivo", "conflito_nuvem": "De la cuenta", "conflito_manter": "Conservar este", "res_almas": "Almas: {n}", "res_missoes": "Misiones: {n}", "res_tempo": "Mejor tiempo: {t}", "res_itens": "Objetos en el cofre: {n}"}, "ru": {"conta_apple": "Войти через Apple", "conta_guest": "Играть как гость", "conta_guest_aviso": "В гостевом режиме прогресс хранится только на этом устройстве и пропадёт при очистке данных браузера. Привяжите аккаунт, когда захотите его сохранить.", "conta_vincular": "Привязать аккаунт", "conta_vinculado": "Аккаунт привязан. Прогресс сохранён.", "conta_convidado": "Гость", "conflito_titulo": "Два разных сохранения", "conflito_sub": "Вы уже играли на этом устройстве, и в аккаунте есть сохранение. Какое оставить? Второе будет заменено.", "conflito_local": "С устройства", "conflito_nuvem": "Из аккаунта", "conflito_manter": "Оставить это", "res_almas": "Души: {n}", "res_missoes": "Задания: {n}", "res_tempo": "Лучшее время: {t}", "res_itens": "Предметов в сундуке: {n}"}, "ja": {"conta_apple": "Appleでログイン", "conta_guest": "ゲストとして遊ぶ", "conta_guest_aviso": "ゲストの進行状況はこの端末だけに残り、ブラウザのデータを消すと失われます。残したくなったらアカウントと連携してください。", "conta_vincular": "アカウントと連携", "conta_vinculado": "アカウントを連携しました。進行状況はそのまま残っています。", "conta_convidado": "ゲスト", "conflito_titulo": "2つの進行状況", "conflito_sub": "この端末のプレイ記録と、このアカウントの保存データがあります。どちらを残しますか？もう一方は上書きされます。", "conflito_local": "この端末", "conflito_nuvem": "アカウント", "conflito_manter": "こちらを残す", "res_almas": "魂：{n}", "res_missoes": "ミッション：{n}", "res_tempo": "最高記録：{t}", "res_itens": "倉庫のアイテム：{n}"}, "ko": {"conta_apple": "애플로 로그인", "conta_guest": "게스트로 플레이", "conta_guest_aviso": "게스트는 진행 상황이 이 기기에만 남고 브라우저 데이터를 지우면 사라집니다. 보관하고 싶을 때 계정을 연결하세요.", "conta_vincular": "계정 연결하기", "conta_vinculado": "계정을 연결했습니다. 진행 상황은 그대로 유지됩니다.", "conta_convidado": "게스트", "conflito_titulo": "서로 다른 두 개의 저장", "conflito_sub": "이 기기에서 플레이한 기록과 이 계정의 저장 데이터가 있습니다. 어느 쪽을 유지할까요? 다른 쪽은 대체됩니다.", "conflito_local": "이 기기", "conflito_nuvem": "계정", "conflito_manter": "이걸 유지", "res_almas": "영혼: {n}", "res_missoes": "미션: {n}", "res_tempo": "최고 기록: {t}", "res_itens": "보관함 아이템: {n}"}};
 for(const l in CONTA_STR2) Object.assign(STR[l], CONTA_STR2[l]);
+const FB_STR = {"pt": {"inicio_titulo": "Como você quer jogar?", "inicio_sub": "Com uma conta, seu progresso fica salvo na nuvem e acompanha você em qualquer aparelho. Dá para decidir depois nas Opções.", "inicio_depois": "Agora não", "o_conta": "Conta e save na nuvem", "o_feedback": "Enviar feedback", "fb_titulo": "Feedback", "fb_sub": "Conte o que achou, o que travou ou o que está fácil ou difícil demais. Isso ajuda a melhorar o jogo.", "fb_nota": "Sua nota", "fb_texto": "O que você quer contar?", "fb_ph": "Bugs, ideias, o que ficou chato ou legal...", "fb_contato": "E-mail para resposta (opcional)", "fb_enviar": "Enviar", "fb_ok": "Obrigado! Seu feedback foi enviado.", "fb_erro": "Não deu para enviar agora. Tente de novo mais tarde.", "fb_vazio": "Escreva algo ou escolha uma nota antes de enviar.", "beta_titulo": "Beta fechado no momento", "beta_sub": "O Sina abre em janelas de teste. A próxima começa em {t}.", "beta_agora": "O beta está aberto agora!", "beta_codigo": "Tem um código de acesso?", "beta_entrar": "Usar código", "beta_erro": "Código inválido.", "beta_ok": "Acesso liberado. Bom jogo!"}, "en": {"inicio_titulo": "How do you want to play?", "inicio_sub": "With an account, your progress is saved in the cloud and follows you on any device. You can decide later in Options.", "inicio_depois": "Not now", "o_conta": "Account and cloud save", "o_feedback": "Send feedback", "fb_titulo": "Feedback", "fb_sub": "Tell us what you think, what broke, or what feels too easy or too hard. It helps make the game better.", "fb_nota": "Your rating", "fb_texto": "What would you like to say?", "fb_ph": "Bugs, ideas, what felt boring or great...", "fb_contato": "Email for a reply (optional)", "fb_enviar": "Send", "fb_ok": "Thank you! Your feedback was sent.", "fb_erro": "Could not send right now. Please try again later.", "fb_vazio": "Write something or pick a rating before sending.", "beta_titulo": "Beta is closed right now", "beta_sub": "Sina opens in test windows. The next one starts in {t}.", "beta_agora": "The beta is open now!", "beta_codigo": "Have an access code?", "beta_entrar": "Use code", "beta_erro": "Invalid code.", "beta_ok": "Access granted. Have fun!"}, "es": {"inicio_titulo": "¿Cómo quieres jugar?", "inicio_sub": "Con una cuenta, tu progreso se guarda en la nube y te acompaña en cualquier dispositivo. Puedes decidirlo después en Opciones.", "inicio_depois": "Ahora no", "o_conta": "Cuenta y guardado en la nube", "o_feedback": "Enviar comentarios", "fb_titulo": "Comentarios", "fb_sub": "Cuéntanos qué te pareció, qué falló o qué está demasiado fácil o difícil. Ayuda a mejorar el juego.", "fb_nota": "Tu nota", "fb_texto": "¿Qué quieres contar?", "fb_ph": "Errores, ideas, lo que resultó aburrido o genial...", "fb_contato": "Correo para responder (opcional)", "fb_enviar": "Enviar", "fb_ok": "¡Gracias! Tus comentarios fueron enviados.", "fb_erro": "No se pudo enviar ahora. Inténtalo más tarde.", "fb_vazio": "Escribe algo o elige una nota antes de enviar.", "beta_titulo": "La beta está cerrada ahora", "beta_sub": "Sina abre en ventanas de prueba. La próxima empieza en {t}.", "beta_agora": "¡La beta está abierta!", "beta_codigo": "¿Tienes un código de acceso?", "beta_entrar": "Usar código", "beta_erro": "Código inválido.", "beta_ok": "Acceso liberado. ¡Buen juego!"}, "ru": {"inicio_titulo": "Как вы хотите играть?", "inicio_sub": "С аккаунтом прогресс хранится в облаке и доступен на любом устройстве. Решить можно и позже, в настройках.", "inicio_depois": "Не сейчас", "o_conta": "Аккаунт и облачное сохранение", "o_feedback": "Отправить отзыв", "fb_titulo": "Отзыв", "fb_sub": "Расскажите, что понравилось, что сломалось и что слишком легко или сложно. Это помогает улучшать игру.", "fb_nota": "Ваша оценка", "fb_texto": "Что вы хотите рассказать?", "fb_ph": "Ошибки, идеи, что показалось скучным или отличным...", "fb_contato": "Почта для ответа (необязательно)", "fb_enviar": "Отправить", "fb_ok": "Спасибо! Отзыв отправлен.", "fb_erro": "Сейчас не удалось отправить. Попробуйте позже.", "fb_vazio": "Напишите что-нибудь или поставьте оценку перед отправкой.", "beta_titulo": "Бета сейчас закрыта", "beta_sub": "Sina открывается окнами тестирования. Следующее начнётся через {t}.", "beta_agora": "Бета открыта!", "beta_codigo": "Есть код доступа?", "beta_entrar": "Ввести код", "beta_erro": "Неверный код.", "beta_ok": "Доступ открыт. Приятной игры!"}, "ja": {"inicio_titulo": "どうやって遊びますか？", "inicio_sub": "アカウントがあると進行状況がクラウドに保存され、どの端末でも続けられます。あとで設定から決めることもできます。", "inicio_depois": "今はしない", "o_conta": "アカウントとクラウドセーブ", "o_feedback": "フィードバックを送る", "fb_titulo": "フィードバック", "fb_sub": "感想、不具合、簡単すぎる・難しすぎると感じた点を教えてください。ゲームの改善に役立ちます。", "fb_nota": "評価", "fb_texto": "伝えたいこと", "fb_ph": "バグ、アイデア、退屈だった点、良かった点など...", "fb_contato": "返信用のメール（任意）", "fb_enviar": "送信", "fb_ok": "ありがとうございます！フィードバックを送信しました。", "fb_erro": "今は送信できませんでした。あとでもう一度お試しください。", "fb_vazio": "送信する前に、何か書くか評価を選んでください。", "beta_titulo": "現在ベータは閉じています", "beta_sub": "Sinaはテスト期間ごとに開きます。次は{t}後に始まります。", "beta_agora": "ベータは今開いています！", "beta_codigo": "アクセスコードをお持ちですか？", "beta_entrar": "コードを使う", "beta_erro": "無効なコードです。", "beta_ok": "アクセスできます。楽しんで！"}, "ko": {"inicio_titulo": "어떻게 플레이할까요?", "inicio_sub": "계정이 있으면 진행 상황이 클라우드에 저장되어 어느 기기에서나 이어집니다. 나중에 설정에서 정해도 됩니다.", "inicio_depois": "나중에", "o_conta": "계정과 클라우드 저장", "o_feedback": "피드백 보내기", "fb_titulo": "피드백", "fb_sub": "어땠는지, 무엇이 문제였는지, 너무 쉽거나 어려운 점을 알려주세요. 게임을 개선하는 데 큰 도움이 됩니다.", "fb_nota": "평점", "fb_texto": "무엇을 알려주시겠어요?", "fb_ph": "버그, 아이디어, 지루했던 점이나 좋았던 점...", "fb_contato": "답장을 받을 이메일 (선택)", "fb_enviar": "보내기", "fb_ok": "감사합니다! 피드백을 보냈습니다.", "fb_erro": "지금은 보낼 수 없습니다. 나중에 다시 시도하세요.", "fb_vazio": "보내기 전에 내용을 적거나 평점을 선택하세요.", "beta_titulo": "지금은 베타가 닫혀 있습니다", "beta_sub": "Sina는 테스트 기간마다 열립니다. 다음은 {t} 후에 시작합니다.", "beta_agora": "베타가 열렸습니다!", "beta_codigo": "액세스 코드가 있나요?", "beta_entrar": "코드 사용", "beta_erro": "잘못된 코드입니다.", "beta_ok": "접속이 열렸습니다. 즐겁게 플레이하세요!"}};
+for(const l in FB_STR) Object.assign(STR[l], FB_STR[l]);
 
 const CONTA = {sdk:null, user:null, ocupado:false, entrando:false, ultima:0, pendente:false, msg:'', conflito:null, jaPerguntou:false};
 const contaLigada = () => !!(CFG.firebase && CFG.firebase.apiKey);
@@ -7311,6 +7362,8 @@ async function carregarSDK(){
     doc: store.doc,
     ler: store.getDoc,
     gravar: store.setDoc,
+    colecao: store.collection,
+    novoDoc: store.addDoc,
   };
   return CONTA.sdk;
 }
@@ -7513,15 +7566,75 @@ $('#conta').addEventListener('click', ev=>{
   else if(b.id === 'contaBaixar') forcarBaixa();
   else if(b.id === 'contaVoltar') goMenu();
 });
-$('#btnConta').onclick = ()=>{ audioOn(); renderConta(); showOnly('conta'); };
+function abrirConta(){ audioOn(); renderConta(); showOnly('conta'); }
+if($('#btnConta')) $('#btnConta').onclick = abrirConta;
+function perguntarLoginInicial(){
+  if(!contaLigada() || SAVE.opt.contaPerguntou || CONTA.user) return;
+  $('#inicioConteudo').innerHTML = `<p class="desc">${tr('inicio_sub')}</p>
+    <div class="acoes">
+      <button class="btn primario" data-inicio="google">${tr('conta_entrar')}</button>
+      ${CFG.appleLogin ? `<button class="btn" data-inicio="apple">${tr('conta_apple')}</button>` : ''}
+      <button class="btn" data-inicio="guest">${tr('conta_guest')}</button>
+      <button class="btn" data-inicio="depois">${tr('inicio_depois')}</button>
+    </div>
+    <p class="desc">${tr('conta_guest_aviso')}</p>`;
+  showOnly('contaInicio');
+}
+$('#contaInicio').addEventListener('click', ev=>{
+  const b = ev.target.closest('[data-inicio]'); if(!b) return;
+  SAVE.opt.contaPerguntou = true; persist();
+  const tipo = b.dataset.inicio;
+  goMenu();
+  if(tipo !== 'depois') entrarConta(tipo);
+});
 $('#conflito').addEventListener('click', ev=>{
   const b = ev.target.closest('[data-conflito]');
   if(b) resolverConflito(b.dataset.conflito);
 });
 
+const FB = {nota:0};
+function renderFeedback(){
+  const estrelas = [1,2,3,4,5].map(n=>`<button class="estrela ${FB.nota>=n?'on':''}" data-nota="${n}" aria-label="${n}">★</button>`).join('');
+  $('#fbConteudo').innerHTML = `<p class="desc">${tr('fb_sub')}</p>
+    <div class="opt"><label>${tr('fb_nota')}</label><div class="estrelas">${estrelas}</div></div>
+    <div class="opt"><label for="fbTexto">${tr('fb_texto')}</label>
+      <textarea id="fbTexto" rows="5" maxlength="1200" placeholder="${tr('fb_ph')}"></textarea></div>
+    <div class="opt"><label for="fbContato">${tr('fb_contato')}</label>
+      <input id="fbContato" type="email" maxlength="120" autocomplete="email"></div>
+    <div class="acoes"><button class="btn primario" id="fbEnviar">${tr('fb_enviar')}</button></div>
+    <p id="fbMsg" role="status"></p>`;
+}
+async function enviarFeedback(){
+  const texto = ($('#fbTexto').value || '').trim();
+  const contato = ($('#fbContato').value || '').trim();
+  if(!texto && !FB.nota){ $('#fbMsg').textContent = tr('fb_vazio'); return; }
+  $('#fbMsg').textContent = tr('conta_entrando');
+  try{
+    const s = await carregarSDK();
+    if(!CONTA.user) await s.entrarAnonimo(s.auth);
+    const ultima = SAVE.runs && SAVE.runs[0];
+    await s.novoDoc(s.colecao(s.db, 'feedback'), {
+      nota: FB.nota || null, texto: texto.slice(0, 1200), contato: contato.slice(0, 120),
+      versao: VERSAO_JOGO, idioma: LANG, quando: Date.now(),
+      uid: (s.auth.currentUser && s.auth.currentUser.uid) || null,
+      tela: `${W}x${H}`, toque: touchUI,
+      progresso: {almas: SAVE.almas, missoes: Object.keys(SAVE.missions||{}).length, melhor: (SAVE.best&&SAVE.best.time)||0,
+                  ultima: ultima ? {t:ultima.t, l:ultima.l, c:ultima.c, m:ultima.m} : null},
+    });
+    $('#fbMsg').textContent = tr('fb_ok');
+    FB.nota = 0;
+    setTimeout(()=>{ if(!$('#feedback').hidden) goMenu(); }, 1200);
+  }catch(e){ $('#fbMsg').textContent = tr('fb_erro'); }
+}
+$('#feedback').addEventListener('click', ev=>{
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.dataset.nota){ FB.nota = +b.dataset.nota; const t = $('#fbTexto').value, c = $('#fbContato').value; renderFeedback(); $('#fbTexto').value = t; $('#fbContato').value = c; }
+  else if(b.id === 'fbEnviar') enviarFeedback();
+  else if(b.id === 'fbVoltar') goMenu();
+});
 async function iniciarConta(){
   if(!contaLigada()) return;
-  $('#btnConta').hidden = false;
+  if($('#btnConta')) $('#btnConta').hidden = false;
   try{
     const s = await carregarSDK();
     s.aoMudar(s.auth, u => {
@@ -7541,6 +7654,7 @@ applyQuality();
 Portal.init();
 goMenu();
 iniciarConta();
+setTimeout(perguntarLoginInicial, 400);
 atualizarBotoesApp();
 registrarSW();
 if(DESKTOP) for(const id in SAVE.missions) if(SAVE.missions[id]) conquistaSteam(id);
