@@ -440,6 +440,9 @@ body.gp .card.gp-foco{transform:translateY(-10px)}
 #fbMsg{min-height:1.4em;color:var(--vela)}
 #contaInicio .painel{max-width:520px;text-align:center}
 #contaInicio .acoes{flex-direction:column;align-items:stretch;gap:.5rem;margin:1rem 0}
+.relogio-beta{font-family:var(--titulo);font-size:2.6rem;color:var(--vela);margin:.3rem 0 .6rem;text-align:center}
+#beta .painel{max-width:560px;text-align:center}
+#betaMsg{min-height:1.4em;color:var(--sangue)}
 </style>
 <script>
 /* ============================================================
@@ -453,6 +456,16 @@ window.SINA_CONFIG = {
 
   // Login com Google e save na nuvem. Cole aqui a configuração do seu projeto no Firebase.
   // Deixe como null para desligar a conta (o botão some do menu).
+  // Acesso beta por janelas de tempo (horário de Brasília). ativo:false libera para todos.
+  beta: {
+    ativo: false,
+    codigo: 'SINA2026',
+    pagina: '/sina/lancamento.html',
+    janelas: [
+      {de: '2026-09-26T19:00:00-03:00', ate: '2026-09-26T23:59:00-03:00'},
+      {de: '2026-09-27T14:00:00-03:00', ate: '2026-09-27T23:59:00-03:00'}
+    ]
+  },
   appleLogin: false,   // true depois de configurar o Sign in with Apple no Firebase
   firebase: {
     apiKey: 'AIzaSyAE-rSMCgZqalgLxyFCTQQfml-5HkRijTc',
@@ -649,6 +662,13 @@ body.sobreposto #hud{visibility:hidden}
   <div class="painel">
     <h2 data-i18n="inicio_titulo"></h2>
     <div id="inicioConteudo"></div>
+  </div>
+</section>
+
+<section id="beta" class="screen" hidden>
+  <div class="painel">
+    <h2 data-i18n="beta_titulo"></h2>
+    <div id="betaConteudo"></div>
   </div>
 </section>
 
@@ -4758,10 +4778,10 @@ $('#grim .abas').addEventListener('click', ev=>{
 });
 
 /* ---------- telas ---------- */
-const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','conta','contaInicio','feedback','conflito','prologo','bonus','level','shop','trial','pause','win','dead'];
+const SCREENS = ['menu','reli','grim','opts','loja','arsenal','notas','conta','contaInicio','feedback','beta','conflito','prologo','bonus','level','shop','trial','pause','win','dead'];
 function showOnly(id){ for(const s of SCREENS) $('#'+s).hidden = s!==id; if(id){ joyEnd(); $('#banner').classList.remove('on'); } document.body.classList.toggle('sobreposto', !!id); if(G) tutShow(); tipContexto(); if(id) gpAoMostrarTela(); }
 let jaJogou = false;
-function jogar(){ audioOn(); if(!SAVE.opt.prologoFeito){ iniciarPrologo(); return; } const tipo = jaJogou ? 'next' : 'start'; jaJogou = true; Portal.commercial(startRun, tipo, 'jogar'); }
+function jogar(){ audioOn(); if(!verificarBeta()) return; if(!SAVE.opt.prologoFeito){ iniciarPrologo(); return; } const tipo = jaJogou ? 'next' : 'start'; jaJogou = true; Portal.commercial(startRun, tipo, 'jogar'); }
 $('#btnJogar').onclick = jogar;
 $('#reliJogar').onclick = jogar;
 $('#btnReli').onclick = ()=>{ renderReli(); showOnly('reli'); tip('reli'); };
@@ -4917,7 +4937,46 @@ $('#tutPular').onclick = ()=>{ if(G && G.tut) tutEnd(); };
 
 
 /* ---------- monetização: AdSense para Jogos, recompensas, aparências e Tesouro ---------- */
-const CFG = Object.assign({adsenseClient:'', adsenseTest:false, lojaApi:'', privacidade:'', firebase:null, appleLogin:false}, window.SINA_CONFIG || {});
+const CFG = Object.assign({adsenseClient:'', adsenseTest:false, lojaApi:'', privacidade:'', firebase:null, appleLogin:false, beta:null}, window.SINA_CONFIG || {});
+
+/* ---------- acesso beta por janelas de tempo ---------- */
+function janelaBeta(){
+  const b = CFG.beta;
+  if(!b || !b.ativo) return {liberado:true};
+  try{ if(localStorage.getItem('sina_beta_ok') === (b.codigo || '#')) return {liberado:true}; }catch(e){}
+  const agora = Date.now();
+  for(const j of (b.janelas || [])){
+    const de = new Date(j.de).getTime(), ate = new Date(j.ate).getTime();
+    if(agora >= de && agora <= ate) return {liberado:true, fim:ate};
+    if(agora < de) return {liberado:false, inicio:de};
+  }
+  return {liberado:false, acabou:true};
+}
+function tempoBeta(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const d = Math.floor(s/86400);
+  const resto = fmtTime(s % 86400);
+  return d ? tr('beta_dias', {d}) + ' ' + resto : resto;
+}
+function renderBeta(){
+  const j = janelaBeta();
+  if(j.liberado){ if(!$('#beta').hidden) goMenu(); return; }
+  const quando = j.acabou ? '' : tempoBeta(j.inicio - Date.now());
+  $('#betaConteudo').innerHTML = `
+    <p class="desc">${j.acabou ? tr('beta_espera') : tr('beta_sub', {t:quando})}</p>
+    ${j.acabou ? '' : `<p class="relogio-beta">${quando}</p>`}
+    ${CFG.beta && CFG.beta.codigo ? `<div class="opt"><label for="betaCodigo">${tr('beta_codigo')}</label>
+      <div class="restaurar"><input id="betaCodigo" autocomplete="off"><button class="btn peq" id="betaEntrar">${tr('beta_entrar')}</button></div></div>` : ''}
+    ${CFG.beta && CFG.beta.pagina ? `<div class="acoes"><a class="btn primario" href="${CFG.beta.pagina}">${tr('beta_lista')}</a></div>` : ''}
+    <p id="betaMsg" role="status"></p>`;
+  showOnly('beta');
+}
+function verificarBeta(){
+  if(janelaBeta().liberado) return true;
+  renderBeta();
+  if(!window.__betaTimer) window.__betaTimer = setInterval(()=>{ if(!$('#beta').hidden) renderBeta(); }, 1000);
+  return false;
+}
 
 const MON_STR = {
 pt:{
@@ -7333,6 +7392,8 @@ const CONTA_STR2 = {"pt": {"conta_apple": "Entrar com Apple", "conta_guest": "Jo
 for(const l in CONTA_STR2) Object.assign(STR[l], CONTA_STR2[l]);
 const FB_STR = {"pt": {"inicio_titulo": "Como você quer jogar?", "inicio_sub": "Com uma conta, seu progresso fica salvo na nuvem e acompanha você em qualquer aparelho. Dá para decidir depois nas Opções.", "inicio_depois": "Agora não", "o_conta": "Conta e save na nuvem", "o_feedback": "Enviar feedback", "fb_titulo": "Feedback", "fb_sub": "Conte o que achou, o que travou ou o que está fácil ou difícil demais. Isso ajuda a melhorar o jogo.", "fb_nota": "Sua nota", "fb_texto": "O que você quer contar?", "fb_ph": "Bugs, ideias, o que ficou chato ou legal...", "fb_contato": "E-mail para resposta (opcional)", "fb_enviar": "Enviar", "fb_ok": "Obrigado! Seu feedback foi enviado.", "fb_erro": "Não deu para enviar agora. Tente de novo mais tarde.", "fb_vazio": "Escreva algo ou escolha uma nota antes de enviar.", "beta_titulo": "Beta fechado no momento", "beta_sub": "O Sina abre em janelas de teste. A próxima começa em {t}.", "beta_agora": "O beta está aberto agora!", "beta_codigo": "Tem um código de acesso?", "beta_entrar": "Usar código", "beta_erro": "Código inválido.", "beta_ok": "Acesso liberado. Bom jogo!"}, "en": {"inicio_titulo": "How do you want to play?", "inicio_sub": "With an account, your progress is saved in the cloud and follows you on any device. You can decide later in Options.", "inicio_depois": "Not now", "o_conta": "Account and cloud save", "o_feedback": "Send feedback", "fb_titulo": "Feedback", "fb_sub": "Tell us what you think, what broke, or what feels too easy or too hard. It helps make the game better.", "fb_nota": "Your rating", "fb_texto": "What would you like to say?", "fb_ph": "Bugs, ideas, what felt boring or great...", "fb_contato": "Email for a reply (optional)", "fb_enviar": "Send", "fb_ok": "Thank you! Your feedback was sent.", "fb_erro": "Could not send right now. Please try again later.", "fb_vazio": "Write something or pick a rating before sending.", "beta_titulo": "Beta is closed right now", "beta_sub": "Sina opens in test windows. The next one starts in {t}.", "beta_agora": "The beta is open now!", "beta_codigo": "Have an access code?", "beta_entrar": "Use code", "beta_erro": "Invalid code.", "beta_ok": "Access granted. Have fun!"}, "es": {"inicio_titulo": "¿Cómo quieres jugar?", "inicio_sub": "Con una cuenta, tu progreso se guarda en la nube y te acompaña en cualquier dispositivo. Puedes decidirlo después en Opciones.", "inicio_depois": "Ahora no", "o_conta": "Cuenta y guardado en la nube", "o_feedback": "Enviar comentarios", "fb_titulo": "Comentarios", "fb_sub": "Cuéntanos qué te pareció, qué falló o qué está demasiado fácil o difícil. Ayuda a mejorar el juego.", "fb_nota": "Tu nota", "fb_texto": "¿Qué quieres contar?", "fb_ph": "Errores, ideas, lo que resultó aburrido o genial...", "fb_contato": "Correo para responder (opcional)", "fb_enviar": "Enviar", "fb_ok": "¡Gracias! Tus comentarios fueron enviados.", "fb_erro": "No se pudo enviar ahora. Inténtalo más tarde.", "fb_vazio": "Escribe algo o elige una nota antes de enviar.", "beta_titulo": "La beta está cerrada ahora", "beta_sub": "Sina abre en ventanas de prueba. La próxima empieza en {t}.", "beta_agora": "¡La beta está abierta!", "beta_codigo": "¿Tienes un código de acceso?", "beta_entrar": "Usar código", "beta_erro": "Código inválido.", "beta_ok": "Acceso liberado. ¡Buen juego!"}, "ru": {"inicio_titulo": "Как вы хотите играть?", "inicio_sub": "С аккаунтом прогресс хранится в облаке и доступен на любом устройстве. Решить можно и позже, в настройках.", "inicio_depois": "Не сейчас", "o_conta": "Аккаунт и облачное сохранение", "o_feedback": "Отправить отзыв", "fb_titulo": "Отзыв", "fb_sub": "Расскажите, что понравилось, что сломалось и что слишком легко или сложно. Это помогает улучшать игру.", "fb_nota": "Ваша оценка", "fb_texto": "Что вы хотите рассказать?", "fb_ph": "Ошибки, идеи, что показалось скучным или отличным...", "fb_contato": "Почта для ответа (необязательно)", "fb_enviar": "Отправить", "fb_ok": "Спасибо! Отзыв отправлен.", "fb_erro": "Сейчас не удалось отправить. Попробуйте позже.", "fb_vazio": "Напишите что-нибудь или поставьте оценку перед отправкой.", "beta_titulo": "Бета сейчас закрыта", "beta_sub": "Sina открывается окнами тестирования. Следующее начнётся через {t}.", "beta_agora": "Бета открыта!", "beta_codigo": "Есть код доступа?", "beta_entrar": "Ввести код", "beta_erro": "Неверный код.", "beta_ok": "Доступ открыт. Приятной игры!"}, "ja": {"inicio_titulo": "どうやって遊びますか？", "inicio_sub": "アカウントがあると進行状況がクラウドに保存され、どの端末でも続けられます。あとで設定から決めることもできます。", "inicio_depois": "今はしない", "o_conta": "アカウントとクラウドセーブ", "o_feedback": "フィードバックを送る", "fb_titulo": "フィードバック", "fb_sub": "感想、不具合、簡単すぎる・難しすぎると感じた点を教えてください。ゲームの改善に役立ちます。", "fb_nota": "評価", "fb_texto": "伝えたいこと", "fb_ph": "バグ、アイデア、退屈だった点、良かった点など...", "fb_contato": "返信用のメール（任意）", "fb_enviar": "送信", "fb_ok": "ありがとうございます！フィードバックを送信しました。", "fb_erro": "今は送信できませんでした。あとでもう一度お試しください。", "fb_vazio": "送信する前に、何か書くか評価を選んでください。", "beta_titulo": "現在ベータは閉じています", "beta_sub": "Sinaはテスト期間ごとに開きます。次は{t}後に始まります。", "beta_agora": "ベータは今開いています！", "beta_codigo": "アクセスコードをお持ちですか？", "beta_entrar": "コードを使う", "beta_erro": "無効なコードです。", "beta_ok": "アクセスできます。楽しんで！"}, "ko": {"inicio_titulo": "어떻게 플레이할까요?", "inicio_sub": "계정이 있으면 진행 상황이 클라우드에 저장되어 어느 기기에서나 이어집니다. 나중에 설정에서 정해도 됩니다.", "inicio_depois": "나중에", "o_conta": "계정과 클라우드 저장", "o_feedback": "피드백 보내기", "fb_titulo": "피드백", "fb_sub": "어땠는지, 무엇이 문제였는지, 너무 쉽거나 어려운 점을 알려주세요. 게임을 개선하는 데 큰 도움이 됩니다.", "fb_nota": "평점", "fb_texto": "무엇을 알려주시겠어요?", "fb_ph": "버그, 아이디어, 지루했던 점이나 좋았던 점...", "fb_contato": "답장을 받을 이메일 (선택)", "fb_enviar": "보내기", "fb_ok": "감사합니다! 피드백을 보냈습니다.", "fb_erro": "지금은 보낼 수 없습니다. 나중에 다시 시도하세요.", "fb_vazio": "보내기 전에 내용을 적거나 평점을 선택하세요.", "beta_titulo": "지금은 베타가 닫혀 있습니다", "beta_sub": "Sina는 테스트 기간마다 열립니다. 다음은 {t} 후에 시작합니다.", "beta_agora": "베타가 열렸습니다!", "beta_codigo": "액세스 코드가 있나요?", "beta_entrar": "코드 사용", "beta_erro": "잘못된 코드입니다.", "beta_ok": "접속이 열렸습니다. 즐겁게 플레이하세요!"}};
 for(const l in FB_STR) Object.assign(STR[l], FB_STR[l]);
+const BETA_STR = {"pt": {"beta_lista": "Entrar na lista de espera", "beta_dias": "{d}d", "beta_espera": "Enquanto isso, entre na lista para ser avisado da próxima janela."}, "en": {"beta_lista": "Join the waiting list", "beta_dias": "{d}d", "beta_espera": "In the meantime, join the list to hear about the next window."}, "es": {"beta_lista": "Unirme a la lista de espera", "beta_dias": "{d}d", "beta_espera": "Mientras tanto, únete a la lista para saber de la próxima ventana."}, "ru": {"beta_lista": "Записаться в список ожидания", "beta_dias": "{d}д", "beta_espera": "А пока запишитесь в список, чтобы узнать о следующем окне."}, "ja": {"beta_lista": "ウェイティングリストに登録", "beta_dias": "{d}日", "beta_espera": "その間に、次の開放を知らせるリストに登録しておきましょう。"}, "ko": {"beta_lista": "대기자 명단에 등록", "beta_dias": "{d}일", "beta_espera": "그동안 다음 개방 소식을 받을 수 있도록 명단에 등록하세요."}};
+for(const l in BETA_STR) Object.assign(STR[l], BETA_STR[l]);
 
 const CONTA = {sdk:null, user:null, ocupado:false, entrando:false, ultima:0, pendente:false, msg:'', conflito:null, jaPerguntou:false};
 const contaLigada = () => !!(CFG.firebase && CFG.firebase.apiKey);
@@ -7626,6 +7687,16 @@ async function enviarFeedback(){
     setTimeout(()=>{ if(!$('#feedback').hidden) goMenu(); }, 1200);
   }catch(e){ $('#fbMsg').textContent = tr('fb_erro'); }
 }
+$('#beta').addEventListener('click', ev=>{
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.id === 'betaEntrar'){
+    const cod = ($('#betaCodigo').value || '').trim();
+    if(CFG.beta && cod && cod === CFG.beta.codigo){
+      try{ localStorage.setItem('sina_beta_ok', cod); }catch(e){}
+      toast(tr('beta_ok')); goMenu();
+    } else $('#betaMsg').textContent = tr('beta_erro');
+  }
+});
 $('#feedback').addEventListener('click', ev=>{
   const b = ev.target.closest('button'); if(!b) return;
   if(b.dataset.nota){ FB.nota = +b.dataset.nota; const t = $('#fbTexto').value, c = $('#fbContato').value; renderFeedback(); $('#fbTexto').value = t; $('#fbContato').value = c; }
@@ -7654,7 +7725,7 @@ applyQuality();
 Portal.init();
 goMenu();
 iniciarConta();
-setTimeout(perguntarLoginInicial, 400);
+if(verificarBeta()) setTimeout(perguntarLoginInicial, 400);
 atualizarBotoesApp();
 registrarSW();
 if(DESKTOP) for(const id in SAVE.missions) if(SAVE.missions[id]) conquistaSteam(id);

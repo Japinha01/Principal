@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sina — roguelite de cartas</title>
+<meta name="description" content="Sobreviva à horda, monte combos com cartas e derrote o Ceifador. Entre na lista e jogue o beta.">
+<link rel="icon" href="/sina/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/sina/icon-180.png">
+<meta name="theme-color" content="#1c1729">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sina — roguelite de cartas">
+<meta property="og:description" content="Sobreviva à horda, monte combos com cartas e derrote o Ceifador. Entre na lista e jogue o beta.">
+<meta property="og:url" content="https://japax01.com.br/sina/lancamento.html">
+<meta property="og:image" content="https://japax01.com.br/sina/og-capa.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://japax01.com.br/sina/og-capa.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;700&family=Pirata+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  --noite:#1c1729; --tinta:#2a2238; --linha:#4a3d5e; --osso:#ecdfc6; --osso2:#b3a78f;
+  --vela:#f2b544; --sangue:#c93b56; --titulo:'Pirata One', Georgia, serif; --texto:'Alegreya Sans', system-ui, sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--noite);color:var(--osso);font:17px/1.6 var(--texto)}
+a{color:var(--vela)}
+h1,h2,h3{font-family:var(--titulo);font-weight:400;line-height:1.05;margin:0 0 .4rem}
+.env{max-width:1040px;margin:0 auto;padding:0 20px}
+header{position:relative;overflow:hidden;border-bottom:1px solid var(--linha)}
+header .fundo{position:absolute;inset:0;background:url('/sina/og-capa.jpg') center/cover;opacity:.35;filter:saturate(.9)}
+header .fundo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg, rgba(28,23,41,.5), var(--noite))}
+header .env{position:relative;padding:72px 20px 56px;text-align:center}
+h1{font-size:clamp(4rem,14vw,8rem);text-shadow:0 0 40px rgba(242,181,68,.35)}
+.tagline{font-size:clamp(1.1rem,3vw,1.5rem);color:var(--osso2);margin:0 0 1.6rem}
+.acoes{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--tinta);border:1.5px solid var(--linha);border-radius:10px;
+  color:var(--osso);font:inherit;font-weight:700;padding:.75em 1.4em;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--vela)}
+.btn.principal{background:var(--vela);border-color:var(--vela);color:var(--noite)}
+.btn:disabled{opacity:.5;cursor:default}
+.beta{margin:26px auto 0;max-width:560px;background:rgba(0,0,0,.35);border:1px solid var(--linha);border-radius:12px;padding:14px 18px}
+.beta.aberto{border-color:var(--vela);box-shadow:0 0 24px rgba(242,181,68,.25)}
+.beta h3{font-size:1.6rem;margin-bottom:.2rem}
+.relogio{font-size:2rem;font-family:var(--titulo);color:var(--vela)}
+section{padding:54px 0;border-bottom:1px solid rgba(74,61,94,.5)}
+section h2{font-size:clamp(2rem,6vw,3rem);text-align:center;margin-bottom:1.4rem}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.cartao{background:var(--tinta);border:1px solid var(--linha);border-radius:12px;padding:16px 18px}
+.cartao h3{font-size:1.5rem;color:var(--vela)}
+.telas{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.telas img{width:100%;border-radius:10px;border:1px solid var(--linha);display:block}
+form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:1rem}
+input[type=email]{flex:1;min-width:240px;max-width:420px;background:var(--tinta);border:1px solid var(--linha);border-radius:10px;
+  color:var(--osso);padding:.75em 1em;font:inherit}
+.aviso{text-align:center;color:var(--osso2);margin-top:.6rem;min-height:1.4em}
+.idiomas{display:flex;gap:6px;justify-content:center;margin-top:1.2rem}
+.idiomas button{background:none;border:1px solid var(--linha);color:var(--osso2);border-radius:6px;padding:.2em .6em;font:inherit;cursor:pointer}
+.idiomas button[aria-pressed=true]{border-color:var(--vela);color:var(--vela)}
+footer{padding:28px 0 40px;text-align:center;color:var(--osso2);font-size:.92rem}
+@media (prefers-reduced-motion:no-preference){
+  .btn.principal{animation:brilho 3.2s infinite}
+  @keyframes brilho{0%,100%{box-shadow:0 0 0 rgba(242,181,68,0)}50%{box-shadow:0 0 22px rgba(242,181,68,.45)}}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="fundo"></div>
+  <div class="env">
+    <h1>Sina</h1>
+    <p class="tagline" data-t="tagline"></p>
+    <div class="acoes">
+      <a class="btn principal" id="btnJogar" href="/sina/"><span data-t="jogar"></span></a>
+      <a class="btn" href="#lista"><span data-t="entrar_lista"></span></a>
+    </div>
+    <div class="beta" id="caixaBeta">
+      <h3 data-t="beta_titulo"></h3>
+      <p id="betaTexto" class="tagline" style="margin:0"></p>
+      <p class="relogio" id="relogio"></p>
+    </div>
+    <div class="idiomas" id="idiomas"></div>
+  </div>
+</header>
+
+<section>
+  <div class="env">
+    <h2 data-t="oque_titulo"></h2>
+    <div class="grade" id="recursos"></div>
+  </div>
+</section>
+
+<section>
+  <div class="env">
+    <h2 data-t="telas_titulo"></h2>
+    <div class="telas">
+      <img src="/sina/tela-1.jpg" alt="" loading="lazy" width="1280" height="720">
+      <img src="/sina/tela-3.jpg" alt="" loading="lazy" width="1280" height="720">
+      <img src="/sina/tela-2.jpg" alt="" loading="lazy" width="1280" height="720">
+    </div>
+  </div>
+</section>
+
+<section id="lista">
+  <div class="env">
+    <h2 data-t="lista_titulo"></h2>
+    <p class="tagline" style="text-align:center" data-t="lista_sub"></p>
+    <form id="formLista">
+      <input type="email" id="email" required autocomplete="email" placeholder="voce@email.com">
+      <button class="btn principal" type="submit" data-t="lista_btn"></button>
+    </form>
+    <p class="aviso" id="avisoLista"></p>
+  </div>
+</section>
+
+<footer>
+  <p><span data-t="rodape"></span> · <a href="/sina/privacidade.html" data-t="privacidade"></a></p>
+  <p>32rogues — Seth Boyles · Super Pixel Effects Gigapack — Will Tice / unTied Games · Kenney</p>
+</footer>
+
+<script>
+/* ===== CONFIGURAÇÃO ===== */
+const BETA = {
+  ativo: true,                       // false = jogo liberado para todo mundo
+  janelas: [                         // horários de Brasília
+    {de: '2026-09-26T19:00:00-03:00', ate: '2026-09-26T23:59:00-03:00'},
+    {de: '2026-09-27T14:00:00-03:00', ate: '2026-09-27T23:59:00-03:00'},
+  ],
+};
+const FIREBASE = {
+  apiKey: 'AIzaSyAE-rSMCgZqalgLxyFCTQQfml-5HkRijTc',
+  authDomain: 'sina-play.firebaseapp.com',
+  projectId: 'sina-play',
+  storageBucket: 'sina-play.firebasestorage.app',
+  messagingSenderId: '812584058258',
+  appId: '1:812584058258:web:ece5ba50eedfe84371954b',
+};
+
+/* ===== TEXTOS ===== */
+const T = {
+  pt:{tagline:'Sobreviva à horda, monte combos com cartas e derrote o Ceifador.', jogar:'Jogar agora', entrar_lista:'Entrar na lista',
+      beta_titulo:'Acesso beta', beta_aberto:'O beta está aberto agora. Bom jogo!', beta_fechado:'A próxima janela de teste abre em:',
+      beta_encerrado:'As janelas desta rodada acabaram. Entre na lista para saber da próxima.', beta_livre:'O jogo está liberado para todos.',
+      oque_titulo:'O que é o Sina', telas_titulo:'Como ele se parece', lista_titulo:'Lista de espera',
+      lista_sub:'Deixe seu e-mail e avisamos quando abrir a próxima janela do beta e quando o jogo sair.',
+      lista_btn:'Quero ser avisado', lista_ok:'Pronto! Você está na lista.', lista_erro:'Não deu para salvar agora. Tente de novo mais tarde.',
+      lista_invalido:'Escreva um e-mail válido.', rodape:'Sina, um jogo de Gabriel Lima', privacidade:'Política de privacidade',
+      r:[['Roguelite de cartas','Cada nível é uma escolha: armas, bênçãos e coringas que mudam as regras da partida.'],
+         ['Sobreviva à horda','Suas armas atacam sozinhas. Você anda, esquiva e decide onde estar.'],
+         ['Combos de elementos','Junte cartas do mesmo elemento para dobrar o dano e evoluir armas em versões lendárias.'],
+         ['Equipamentos e árvore','Cada partida deixa itens e almas: você volta mais forte, com talentos permanentes.'],
+         ['Quatro áreas, quatro chefes','Cemitério, pântano, catedral e abismo, cada um com regra própria e um pedaço da história.'],
+         ['De graça, no navegador','Joga no celular ou no computador, em 6 idiomas, e dá para instalar como app.']]},
+  en:{tagline:'Survive the horde, build card combos and defeat the Reaper.', jogar:'Play now', entrar_lista:'Join the list',
+      beta_titulo:'Beta access', beta_aberto:'The beta is open right now. Have fun!', beta_fechado:'The next test window opens in:',
+      beta_encerrado:'This round of windows is over. Join the list to hear about the next one.', beta_livre:'The game is open to everyone.',
+      oque_titulo:'What Sina is', telas_titulo:'How it looks', lista_titulo:'Waiting list',
+      lista_sub:'Leave your email and we will tell you when the next beta window opens and when the game launches.',
+      lista_btn:'Notify me', lista_ok:'Done! You are on the list.', lista_erro:'Could not save right now. Please try again later.',
+      lista_invalido:'Please write a valid email.', rodape:'Sina, a game by Gabriel Lima', privacidade:'Privacy policy',
+      r:[['Card roguelite','Every level is a choice: weapons, blessings and jokers that change the rules of the run.'],
+         ['Survive the horde','Your weapons attack on their own. You move, dodge and decide where to be.'],
+         ['Element combos','Stack cards of the same element to double the damage and evolve weapons into legendary forms.'],
+         ['Equipment and talents','Each run leaves items and souls: you come back stronger, with permanent talents.'],
+         ['Four areas, four bosses','Graveyard, marsh, cathedral and abyss, each with its own rule and a piece of the story.'],
+         ['Free, in your browser','Play on phone or desktop, in 6 languages, and install it as an app.']]},
+  es:{tagline:'Sobrevive a la horda, arma combos con cartas y derrota al Segador.', jogar:'Jugar ahora', entrar_lista:'Unirme a la lista',
+      beta_titulo:'Acceso beta', beta_aberto:'La beta está abierta ahora. ¡Buen juego!', beta_fechado:'La próxima ventana de prueba abre en:',
+      beta_encerrado:'Las ventanas de esta ronda terminaron. Únete a la lista para saber de la próxima.', beta_livre:'El juego está abierto para todos.',
+      oque_titulo:'Qué es Sina', telas_titulo:'Cómo se ve', lista_titulo:'Lista de espera',
+      lista_sub:'Deja tu correo y te avisamos cuando abra la próxima ventana de la beta y cuando salga el juego.',
+      lista_btn:'Avísenme', lista_ok:'¡Listo! Ya estás en la lista.', lista_erro:'No se pudo guardar ahora. Inténtalo más tarde.',
+      lista_invalido:'Escribe un correo válido.', rodape:'Sina, un juego de Gabriel Lima', privacidade:'Política de privacidad',
+      r:[['Roguelite de cartas','Cada nivel es una elección: armas, bendiciones y comodines que cambian las reglas.'],
+         ['Sobrevive a la horda','Tus armas atacan solas. Tú te mueves, esquivas y decides dónde estar.'],
+         ['Combos de elementos','Junta cartas del mismo elemento para duplicar el daño y evolucionar armas a versiones legendarias.'],
+         ['Equipo y talentos','Cada partida deja objetos y almas: vuelves más fuerte, con talentos permanentes.'],
+         ['Cuatro áreas, cuatro jefes','Cementerio, pantano, catedral y abismo, cada uno con su regla y un trozo de la historia.'],
+         ['Gratis, en el navegador','Juega en el móvil o en el ordenador, en 6 idiomas, e instálalo como app.']]},
+};
+let idioma = (navigator.language || 'pt').slice(0,2);
+if(!T[idioma]) idioma = 'en';
+
+function aplicarTextos(){
+  const t = T[idioma];
+  document.documentElement.lang = idioma;
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t] || ''; });
+  document.getElementById('recursos').innerHTML = t.r.map(([titulo, texto]) =>
+    `<div class="cartao"><h3>${titulo}</h3><p>${texto}</p></div>`).join('');
+  document.getElementById('idiomas').innerHTML = Object.keys(T).map(l =>
+    `<button data-idioma="${l}" aria-pressed="${l===idioma}">${({pt:'Português', en:'English', es:'Español'})[l]}</button>`).join('');
+  atualizarBeta();
+}
+document.getElementById('idiomas').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-idioma]');
+  if(b){ idioma = b.dataset.idioma; aplicarTextos(); }
+});
+
+/* ===== estado do beta ===== */
+function janelaAtual(){
+  const agora = Date.now();
+  for(const j of BETA.janelas){
+    const de = new Date(j.de).getTime(), ate = new Date(j.ate).getTime();
+    if(agora >= de && agora <= ate) return {aberta:true, fim:ate};
+    if(agora < de) return {aberta:false, inicio:de};
+  }
+  return {aberta:false, acabou:true};
+}
+function tempoTexto(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const d = Math.floor(s/86400), h = Math.floor(s%86400/3600), m = Math.floor(s%3600/60), sg = s%60;
+  const p = n => String(n).padStart(2,'0');
+  return (d ? d + 'd ' : '') + p(h) + ':' + p(m) + ':' + p(sg);
+}
+function atualizarBeta(){
+  const t = T[idioma], caixa = document.getElementById('caixaBeta');
+  const texto = document.getElementById('betaTexto'), relogio = document.getElementById('relogio');
+  const botao = document.getElementById('btnJogar');
+  if(!BETA.ativo){
+    caixa.classList.add('aberto'); texto.textContent = t.beta_livre; relogio.textContent = '';
+    botao.removeAttribute('aria-disabled'); return;
+  }
+  const j = janelaAtual();
+  if(j.aberta){
+    caixa.classList.add('aberto');
+    texto.textContent = t.beta_aberto;
+    relogio.textContent = tempoTexto(j.fim - Date.now());
+    botao.style.display = '';
+  } else {
+    caixa.classList.remove('aberto');
+    texto.textContent = j.acabou ? t.beta_encerrado : t.beta_fechado;
+    relogio.textContent = j.acabou ? '' : tempoTexto(j.inicio - Date.now());
+    botao.style.display = 'none';
+  }
+}
+setInterval(atualizarBeta, 1000);
+
+/* ===== lista de espera (Firestore) ===== */
+let fb = null;
+async function carregarFirebase(){
+  if(fb) return fb;
+  const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const [app, auth, store] = await Promise.all([
+    import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js'),
+  ]);
+  const aplicativo = app.initializeApp(FIREBASE);
+  const autenticacao = auth.getAuth(aplicativo);
+  if(!autenticacao.currentUser) await auth.signInAnonymously(autenticacao);
+  fb = {db: store.getFirestore(aplicativo), colecao: store.collection, novoDoc: store.addDoc};
+  return fb;
+}
+document.getElementById('formLista').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const t = T[idioma], aviso = document.getElementById('avisoLista');
+  const email = document.getElementById('email').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ aviso.textContent = t.lista_invalido; return; }
+  aviso.textContent = '...';
+  try{
+    const f = await carregarFirebase();
+    await f.novoDoc(f.colecao(f.db, 'wishlist'), {
+      email: email.slice(0,120), quando: Date.now(), idioma,
+      origem: (location.search || '').slice(0,120) || 'direto',
+    });
+    aviso.textContent = t.lista_ok;
+    ev.target.reset();
+  }catch(e){ aviso.textContent = t.lista_erro; }
+});
+
+aplicarTextos();
+</script>
+</body>
+</html>
