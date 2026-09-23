@@ -158,6 +158,14 @@ Com `firebase: null`, o botão Conta some do menu e o jogo funciona só com o sa
 
 ## 9. Página de lançamento, lista de espera e beta
 
+**Endereço:** a Vercel serve o arquivo em `japax01.com.br/sina/lancamento.html`. Para o endereço curto (`/sina/lancamento`) funcionar, o `vercel-exemplo.json` traz a regra:
+
+```json
+"rewrites": [
+  { "source": "/sina/lancamento", "destination": "/sina/lancamento.html" }
+]
+```
+
 O arquivo `sina/lancamento.html` é a página de divulgação: capa, o que é o Sina, capturas, estado do beta e o formulário da lista de espera. É esse endereço que vale a pena compartilhar, e não o do jogo em si.
 
 **Lista de espera:** os e-mails caem no Firestore, em **Dados → wishlist**, com data, idioma e origem. Dá para exportar pelo console quando quiser avisar todo mundo.
