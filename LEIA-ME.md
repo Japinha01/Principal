@@ -185,7 +185,7 @@ beta: {
 }
 ```
 
-Fora das janelas, quem abrir o jogo vê uma tela com contagem regressiva, o campo de código e o link para a lista. Quem digita o código certo fica liberado naquele aparelho para sempre.
+Fora das janelas, quem abrir `japax01.com.br/sina/` é levado direto para a página de lançamento, com a contagem regressiva e o campo de código — o jogo nem chega a carregar. Quem digita o código certo fica liberado naquele aparelho para sempre, e é levado ao jogo.
 
 **Dica de divulgação:** anuncie a janela com um ou dois dias de antecedência e deixe ela curta (3 a 5 horas). Muita gente entrando junto rende mais feedback e dá sensação de evento.
 

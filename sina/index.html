@@ -485,6 +485,19 @@ window.SINA_CONFIG = {
   */
 };
 </script>
+<script>
+/* Portão do beta: com o beta fechado, manda para a página de lançamento antes de carregar o jogo */
+(function(){
+  var b = (window.SINA_CONFIG || {}).beta;
+  if(!b || !b.ativo || !b.pagina) return;
+  try{ if(localStorage.getItem('sina_beta_ok') === (b.codigo || '#')) return; }catch(e){}
+  var agora = Date.now(), aberto = false;
+  (b.janelas || []).forEach(function(j){
+    if(agora >= new Date(j.de).getTime() && agora <= new Date(j.ate).getTime()) aberto = true;
+  });
+  if(!aberto && location.pathname.indexOf('lancamento') < 0) location.replace(b.pagina);
+})();
+</script>
 <style>
 /* ---- v4: opções, tutorial, dicas ---- */
 .painel.estreito{width:min(560px,100%)}

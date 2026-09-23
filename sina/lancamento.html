@@ -53,7 +53,7 @@ section h2{font-size:clamp(2rem,6vw,3rem);text-align:center;margin-bottom:1.4rem
 .cartao{background:var(--tinta);border:1px solid var(--linha);border-radius:12px;padding:16px 18px}
 .cartao h3{font-size:1.5rem;color:var(--vela)}
 .telas{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-.telas img{width:100%;border-radius:10px;border:1px solid var(--linha);display:block}
+.telas img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--linha);display:block}
 form{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:1rem}
 input[type=email]{flex:1;min-width:240px;max-width:420px;background:var(--tinta);border:1px solid var(--linha);border-radius:10px;
   color:var(--osso);padding:.75em 1em;font:inherit}
@@ -82,6 +82,14 @@ footer{padding:28px 0 40px;text-align:center;color:var(--osso2);font-size:.92rem
       <h3 data-t="beta_titulo"></h3>
       <p id="betaTexto" class="tagline" style="margin:0"></p>
       <p class="relogio" id="relogio"></p>
+      <div id="caixaCodigo" hidden>
+        <p style="margin:.2rem 0" data-t="codigo_titulo"></p>
+        <form id="formCodigo" style="margin-top:.4rem">
+          <input type="text" id="codigo" autocomplete="off" style="max-width:220px">
+          <button class="btn" type="submit" data-t="codigo_btn"></button>
+        </form>
+        <p class="aviso" id="avisoCodigo"></p>
+      </div>
     </div>
     <div class="idiomas" id="idiomas"></div>
   </div>
@@ -125,7 +133,8 @@ footer{padding:28px 0 40px;text-align:center;color:var(--osso2);font-size:.92rem
 <script>
 /* ===== CONFIGURAÇÃO ===== */
 const BETA = {
-  ativo: true,                       // false = jogo liberado para todo mundo
+  ativo: true,
+  codigo: 'SINA2026',   // precisa ser igual ao do jogo                       // false = jogo liberado para todo mundo
   janelas: [                         // horários de Brasília
     {de: '2026-09-26T19:00:00-03:00', ate: '2026-09-26T23:59:00-03:00'},
     {de: '2026-09-27T14:00:00-03:00', ate: '2026-09-27T23:59:00-03:00'},
@@ -149,6 +158,7 @@ const T = {
       lista_sub:'Deixe seu e-mail e avisamos quando abrir a próxima janela do beta e quando o jogo sair.',
       lista_btn:'Quero ser avisado', lista_ok:'Pronto! Você está na lista.', lista_erro:'Não deu para salvar agora. Tente de novo mais tarde.',
       lista_invalido:'Escreva um e-mail válido.', rodape:'Sina, um jogo de Gabriel Lima', privacidade:'Política de privacidade',
+      codigo_titulo:'Tem um código de acesso antecipado?', codigo_btn:'Entrar com código', codigo_erro:'Código inválido.', codigo_ok:'Acesso liberado! Abrindo o jogo...',
       r:[['Roguelite de cartas','Cada nível é uma escolha: armas, bênçãos e coringas que mudam as regras da partida.'],
          ['Sobreviva à horda','Suas armas atacam sozinhas. Você anda, esquiva e decide onde estar.'],
          ['Combos de elementos','Junte cartas do mesmo elemento para dobrar o dano e evoluir armas em versões lendárias.'],
@@ -162,12 +172,55 @@ const T = {
       lista_sub:'Leave your email and we will tell you when the next beta window opens and when the game launches.',
       lista_btn:'Notify me', lista_ok:'Done! You are on the list.', lista_erro:'Could not save right now. Please try again later.',
       lista_invalido:'Please write a valid email.', rodape:'Sina, a game by Gabriel Lima', privacidade:'Privacy policy',
+      codigo_titulo:'Have an early access code?', codigo_btn:'Enter with code', codigo_erro:'Invalid code.', codigo_ok:'Access granted! Opening the game...',
       r:[['Card roguelite','Every level is a choice: weapons, blessings and jokers that change the rules of the run.'],
          ['Survive the horde','Your weapons attack on their own. You move, dodge and decide where to be.'],
          ['Element combos','Stack cards of the same element to double the damage and evolve weapons into legendary forms.'],
          ['Equipment and talents','Each run leaves items and souls: you come back stronger, with permanent talents.'],
          ['Four areas, four bosses','Graveyard, marsh, cathedral and abyss, each with its own rule and a piece of the story.'],
          ['Free, in your browser','Play on phone or desktop, in 6 languages, and install it as an app.']]},
+  ru:{tagline:'Выживайте в орде, собирайте комбинации карт и победите Жнеца.', jogar:'Играть сейчас', entrar_lista:'В список ожидания',
+      beta_titulo:'Бета-доступ', beta_aberto:'Бета открыта прямо сейчас. Удачи!', beta_fechado:'Следующее окно тестирования откроется через:',
+      beta_encerrado:'Окна этого этапа закончились. Запишитесь в список, чтобы узнать о следующем.', beta_livre:'Игра открыта для всех.',
+      oque_titulo:'Что такое Sina', telas_titulo:'Как это выглядит', lista_titulo:'Список ожидания',
+      lista_sub:'Оставьте почту, и мы сообщим, когда откроется следующее окно беты и когда выйдет игра.',
+      lista_btn:'Сообщить мне', lista_ok:'Готово! Вы в списке.', lista_erro:'Сейчас не удалось сохранить. Попробуйте позже.',
+      lista_invalido:'Введите корректный адрес почты.', rodape:'Sina, игра Габриэла Лимы', privacidade:'Политика конфиденциальности',
+      codigo_titulo:'Есть код раннего доступа?', codigo_btn:'Войти с кодом', codigo_erro:'Неверный код.', codigo_ok:'Доступ открыт! Открываем игру...',
+      r:[['Роглайт на картах','Каждый уровень — выбор: оружие, благословения и джокеры, меняющие правила забега.'],
+         ['Выживайте в орде','Оружие атакует само. Вы двигаетесь, уклоняетесь и решаете, где быть.'],
+         ['Комбинации стихий','Собирайте карты одной стихии, чтобы удвоить урон и развить оружие до легендарной формы.'],
+         ['Снаряжение и таланты','Каждый забег оставляет предметы и души: вы возвращаетесь сильнее, с постоянными талантами.'],
+         ['Четыре области, четыре босса','Кладбище, болото, собор и бездна — у каждой свои правила и кусочек истории.'],
+         ['Бесплатно, в браузере','Играйте на телефоне или компьютере, на 6 языках, и установите как приложение.']]},
+  ja:{tagline:'群れを生き延び、カードのコンボを組み、死神を倒そう。', jogar:'今すぐプレイ', entrar_lista:'リストに登録',
+      beta_titulo:'ベータアクセス', beta_aberto:'ベータは今開いています。楽しんで！', beta_fechado:'次のテスト期間が始まるまで:',
+      beta_encerrado:'今回の開放期間は終了しました。次回のお知らせはリスト登録で。', beta_livre:'ゲームは誰でも遊べます。',
+      oque_titulo:'Sinaとは', telas_titulo:'こんなゲームです', lista_titulo:'ウェイティングリスト',
+      lista_sub:'メールを登録すると、次のベータ開放と正式リリースをお知らせします。',
+      lista_btn:'知らせてほしい', lista_ok:'登録しました！', lista_erro:'今は保存できませんでした。あとでお試しください。',
+      lista_invalido:'正しいメールアドレスを入力してください。', rodape:'Sina — Gabriel Lima の作品', privacidade:'プライバシーポリシー',
+      codigo_titulo:'先行アクセスコードをお持ちですか？', codigo_btn:'コードで入る', codigo_erro:'無効なコードです。', codigo_ok:'アクセスできます！ゲームを開きます...',
+      r:[['カードローグライト','レベルごとに選択：武器、祝福、ルールを変えるジョーカー。'],
+         ['群れを生き延びる','武器は自動で攻撃。あなたは移動し、回避し、立ち位置を決める。'],
+         ['属性コンボ','同じ属性のカードを重ねてダメージを倍にし、武器を伝説級へ進化させよう。'],
+         ['装備とタレント','プレイごとにアイテムと魂が残り、永続タレントで強くなって戻ってこられる。'],
+         ['4つのエリア、4体のボス','墓地、沼、大聖堂、深淵。それぞれに固有ルールと物語の断片。'],
+         ['ブラウザで無料','スマホでもPCでも、6言語対応。アプリとしてインストールも可能。']]},
+  ko:{tagline:'무리에서 살아남고 카드 조합을 만들어 사신을 쓰러뜨리세요.', jogar:'지금 플레이', entrar_lista:'명단에 등록',
+      beta_titulo:'베타 접속', beta_aberto:'지금 베타가 열려 있습니다. 즐겁게 플레이하세요!', beta_fechado:'다음 테스트 기간까지:',
+      beta_encerrado:'이번 개방 기간이 끝났습니다. 다음 소식은 명단으로 알려드립니다.', beta_livre:'게임이 모두에게 열려 있습니다.',
+      oque_titulo:'Sina는 이런 게임', telas_titulo:'이렇게 생겼습니다', lista_titulo:'대기자 명단',
+      lista_sub:'이메일을 남기면 다음 베타 개방과 정식 출시를 알려드립니다.',
+      lista_btn:'알려주세요', lista_ok:'완료! 명단에 등록되었습니다.', lista_erro:'지금은 저장할 수 없습니다. 나중에 다시 시도하세요.',
+      lista_invalido:'올바른 이메일을 입력하세요.', rodape:'Sina, Gabriel Lima의 게임', privacidade:'개인정보 처리방침',
+      codigo_titulo:'선행 접속 코드가 있나요?', codigo_btn:'코드로 입장', codigo_erro:'잘못된 코드입니다.', codigo_ok:'접속이 열렸습니다! 게임을 엽니다...',
+      r:[['카드 로그라이트','레벨마다 선택: 무기, 축복, 판의 규칙을 바꾸는 조커.'],
+         ['무리에서 살아남기','무기는 자동으로 공격합니다. 당신은 움직이고 회피하며 위치를 정합니다.'],
+         ['속성 조합','같은 속성 카드를 모아 피해를 두 배로 만들고 무기를 전설로 진화시키세요.'],
+         ['장비와 특성','판마다 아이템과 영혼이 남아, 영구 특성과 함께 더 강해져 돌아옵니다.'],
+         ['네 지역, 네 보스','묘지, 늪, 대성당, 심연. 각각 고유 규칙과 이야기 조각이 있습니다.'],
+         ['브라우저에서 무료','휴대폰이나 PC에서 6개 언어로, 앱으로 설치도 가능합니다.']]},
   es:{tagline:'Sobrevive a la horda, arma combos con cartas y derrota al Segador.', jogar:'Jugar ahora', entrar_lista:'Unirme a la lista',
       beta_titulo:'Acceso beta', beta_aberto:'La beta está abierta ahora. ¡Buen juego!', beta_fechado:'La próxima ventana de prueba abre en:',
       beta_encerrado:'Las ventanas de esta ronda terminaron. Únete a la lista para saber de la próxima.', beta_livre:'El juego está abierto para todos.',
@@ -175,6 +228,7 @@ const T = {
       lista_sub:'Deja tu correo y te avisamos cuando abra la próxima ventana de la beta y cuando salga el juego.',
       lista_btn:'Avísenme', lista_ok:'¡Listo! Ya estás en la lista.', lista_erro:'No se pudo guardar ahora. Inténtalo más tarde.',
       lista_invalido:'Escribe un correo válido.', rodape:'Sina, un juego de Gabriel Lima', privacidade:'Política de privacidad',
+      codigo_titulo:'¿Tienes un código de acceso anticipado?', codigo_btn:'Entrar con código', codigo_erro:'Código inválido.', codigo_ok:'¡Acceso liberado! Abriendo el juego...',
       r:[['Roguelite de cartas','Cada nivel es una elección: armas, bendiciones y comodines que cambian las reglas.'],
          ['Sobrevive a la horda','Tus armas atacan solas. Tú te mueves, esquivas y decides dónde estar.'],
          ['Combos de elementos','Junta cartas del mismo elemento para duplicar el daño y evolucionar armas a versiones legendarias.'],
@@ -191,8 +245,8 @@ function aplicarTextos(){
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t] || ''; });
   document.getElementById('recursos').innerHTML = t.r.map(([titulo, texto]) =>
     `<div class="cartao"><h3>${titulo}</h3><p>${texto}</p></div>`).join('');
-  document.getElementById('idiomas').innerHTML = Object.keys(T).map(l =>
-    `<button data-idioma="${l}" aria-pressed="${l===idioma}">${({pt:'Português', en:'English', es:'Español'})[l]}</button>`).join('');
+  document.getElementById('idiomas').innerHTML = ['pt','en','es','ru','ja','ko'].map(l =>
+    `<button data-idioma="${l}" aria-pressed="${l===idioma}">${({pt:'Português', en:'English', es:'Español', ru:'Русский', ja:'日本語', ko:'한국어'})[l]}</button>`).join('');
   atualizarBeta();
 }
 document.getElementById('idiomas').addEventListener('click', ev => {
@@ -236,6 +290,7 @@ function atualizarBeta(){
     relogio.textContent = j.acabou ? '' : tempoTexto(j.inicio - Date.now());
     botao.style.display = 'none';
   }
+  document.getElementById('caixaCodigo').hidden = !(BETA.ativo && !j.aberta && BETA.codigo);
 }
 setInterval(atualizarBeta, 1000);
 
@@ -268,6 +323,17 @@ document.getElementById('formLista').addEventListener('submit', async ev => {
     aviso.textContent = t.lista_ok;
     ev.target.reset();
   }catch(e){ aviso.textContent = t.lista_erro; }
+});
+
+document.getElementById('formCodigo').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const t = T[idioma], aviso = document.getElementById('avisoCodigo');
+  const cod = document.getElementById('codigo').value.trim();
+  if(BETA.codigo && cod === BETA.codigo){
+    try{ localStorage.setItem('sina_beta_ok', cod); }catch(e){}
+    aviso.textContent = t.codigo_ok;
+    setTimeout(()=>{ location.href = '/sina/'; }, 700);
+  } else aviso.textContent = t.codigo_erro;
 });
 
 aplicarTextos();
