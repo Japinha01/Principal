@@ -458,7 +458,7 @@ window.SINA_CONFIG = {
   // Deixe como null para desligar a conta (o botão some do menu).
   // Acesso beta por janelas de tempo (horário de Brasília). ativo:false libera para todos.
   beta: {
-    ativo: true,
+    ativo: false,
     codigo: 'SINA2026',
     pagina: '/sina/lancamento.html',
     janelas: [
@@ -2714,7 +2714,7 @@ function startRun(){
   if(!SAVE.opt.tutorialDone) G.tut = {step:0, t:0, flag:false, done:false};
   G.skillMax = CLASSES[charId].cd;
   G.loot = []; G.eclipseCd = 0; G.fenixUsada = false;
-  G.area = null; G.bonus = false; G.bonusT = 0; G.bonusFeito = 0; G.lamaT = 6; G.velX = 0; G.velY = 0;
+  G.area = null; G.bonus = false; G.bonusT = 0; G.bonusFeito = 0; G.arena = false; G.lamaT = 6; G.velX = 0; G.velY = 0;
   G.buffs = {}; G.reliq = []; G.nextReliq = 30; G.almasBonus = 0; G.mapaRevelado = false;
   if(P.tree.tarologo) addTarot(randTarot());
   if(P.uniq.has('juramento')) G.weapons[0].lvl = 3;
@@ -2860,7 +2860,7 @@ function proximaOnda(){
   }});
 }
 function updateSpawns(dt){
-  if(G.bonus) return;
+  if(G.bonus || G.arena) return;
   G.waveT -= dt;
   if(G.waveT <= 0 && !G.prologo && G.time > 20){ G.waveT = ONDA_LEN; proximaOnda(); }
   if(G.enemies.length < 440){
@@ -2884,10 +2884,14 @@ function enemyShot(e, ang, spd){
 function bossAct(e, d, dx, dy){
   const a = Math.atan2(dy,dx);
   switch(e.type){
-    case 'guardiao':
+    case 'guardiao':{
       e.atk = 5;
-      for(let i=0;i<8;i++){ const q=i/8*Math.PI*2; spawnEnemy('zumbi', {x:e.x+Math.cos(q)*70, y:e.y+Math.sin(q)*70}); }
+      // na arena as invocações têm teto, senão o chefe vira fonte infinita de cura
+      const vivos = G.enemies.filter(x => !x.boss && !x.dead).length;
+      const n = Math.max(0, Math.min(8, 12 - vivos));
+      for(let i=0;i<n;i++){ const q=i/Math.max(1,n)*Math.PI*2; spawnEnemy('zumbi', {x:e.x+Math.cos(q)*70, y:e.y+Math.sin(q)*70}); }
       break;
+    }
     case 'bruxa':
       e.atk = 2.8;
       for(let i=0;i<14;i++) enemyShot(e, a + i/14*Math.PI*2, 140);
@@ -2901,7 +2905,11 @@ function bossAct(e, d, dx, dy){
       e.atk = 2.4;
       if(e.phase%3===0){ e.dashT = 0.7; e.dx = dx/d; e.dy = dy/d; }
       else if(e.phase%3===1){ for(let i=0;i<20;i++) enemyShot(e, a + i/20*Math.PI*2, 160); }
-      else { for(let i=0;i<6;i++){ const q=i/6*Math.PI*2; spawnEnemy('espectro', {x:e.x+Math.cos(q)*80, y:e.y+Math.sin(q)*80}); } }
+      else {
+        const vivos = G.enemies.filter(x => !x.boss && !x.dead).length;
+        const n = Math.max(0, Math.min(6, 10 - vivos));
+        for(let i=0;i<n;i++){ const q=i/Math.max(1,n)*Math.PI*2; spawnEnemy('espectro', {x:e.x+Math.cos(q)*80, y:e.y+Math.sin(q)*80}); }
+      }
       break;
   }
 }
@@ -3095,6 +3103,7 @@ function kill(e, tag, o){
   }
   classeAoMatar(e, tag);
   burst(e.x, e.y, e.boss?40:e.elite?16:5, e.cor);
+  if(e.boss) G.arena = false;
   if(e.areaBoss && !G.prologo){
     const idx = AREAS.indexOf(G.area);
     const frag = ['pacto','divida','coro','fundo'][idx] || 'fundo';
@@ -3595,6 +3604,12 @@ function startRound(n){
   if(!G.won && n === FINAL_ROUND) boss = 'ceifador';
   else if((!G.won && n < FINAL_ROUND && n % 3 === 0) || (G.won && n % 2 === 0)) boss = BOSS_CYCLE[G.bossesSpawned++ % BOSS_CYCLE.length];
   if(boss){
+    // a luta de chefe é isolada: a horda some e nada nasce enquanto ele estiver vivo
+    G.arena = true;
+    for(const e2 of G.enemies){ if(!e2.boss){ e2.dead = true; anim('caveira', e2.x, e2.y, 50); } }
+    G.enemies = G.enemies.filter(e2 => !e2.dead);
+    G.eproj.length = 0;
+    toast(tr('arena_aviso'));
     const e = spawnEnemy(boss, {boss:true});
     e.areaBoss = true; e.hp *= 1.5; e.maxHp = e.hp;
     G.queue.push({t:1.4, fn:()=>banner(tr('area_chefe', {n:ETYPES[boss].nome}))});
@@ -4822,7 +4837,9 @@ $('#tar1').addEventListener('pointerdown', ev=>{ ev.preventDefault(); useTarot(1
 $('#btnDash').addEventListener('pointerdown', ev=>{ ev.preventDefault(); audioOn(); dash(); });
 
 /* ---------- entrada ---------- */
+const digitando = el => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 addEventListener('keydown', ev=>{
+  if(digitando(ev.target)) return;
   if(adPlaying){ ev.preventDefault(); return; }
   keys[ev.code] = true;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code)) ev.preventDefault();
@@ -4846,7 +4863,8 @@ addEventListener('keydown', ev=>{
   }
 });
 addEventListener('contextmenu', ev=>ev.preventDefault());
-addEventListener('keyup', ev=>{ keys[ev.code] = false; });
+addEventListener('keyup', ev=>{
+  if(digitando(ev.target)) return; keys[ev.code] = false; });
 addEventListener('blur', ()=>{ for(const k in keys) keys[k]=false; pause(); });
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pause(); });
 
@@ -6772,7 +6790,7 @@ function grimExtra(aba){
 
 
 /* ---------- guia do jogo e notas de versão ---------- */
-const VERSAO_JOGO = '1.6.0';
+const VERSAO_JOGO = '1.8.0';
 const GUIA_STR = {
   pt:{g_tab_guia:'Como jogar', guia_intro:'Tudo o que o jogo tem, explicado em partes. Você não precisa decorar: as dicas também aparecem sozinhas quando cada coisa acontece pela primeira vez.',
       notas_titulo:'Notas de versão', notas_btn:'Novidades', notas_futuro:'Em breve', notas_atual:'Versão atual', notas_antiga:'Versões anteriores', novidade:'novo'},
@@ -6886,7 +6904,21 @@ const NOTAS = [
     ru:['Следующие обновления', ['Страница в Steam, демо и достижения','Новые биомы, боссы и классы','Ежедневный вызов с рейтингом','Оригинальный саундтрек']],
     ja:['次のアップデート', ['Steamページ、体験版、実績','新しいバイオーム、ボス、クラス','ランキング付きのデイリーチャレンジ','オリジナルサウンドトラック']],
     ko:['다음 업데이트', ['스팀 페이지, 데모, 도전 과제','새로운 지역, 보스, 직업','랭킹이 있는 일일 도전','오리지널 사운드트랙']]}},
-  {v:'1.6.0', tipo:'atual', t:{
+  {v:'1.8.0', tipo:'atual', t:{
+    pt:['Arena do chefe', ['Luta de chefe isolada: a horda recua e nada nasce enquanto ele estiver vivo','As invocações dos chefes têm teto, para não virarem fonte infinita de cura','Corrigido: agora dá para digitar espaço nas caixas de texto (feedback, código, restaurar compra)','Capas e imagens da página refeitas no visual novo, e agora em cada idioma']],
+    en:['Boss arena', ['Isolated boss fights: the horde pulls back and nothing spawns while the boss lives','Boss summons are capped, so they stop being an endless healing source','Fixed: you can type spaces in text fields again (feedback, code, restore purchase)','Covers and page images remade in the new look, now in every language']],
+    es:['Arena del jefe', ['Combate de jefe aislado: la horda se retira y no aparece nada mientras él viva','Las invocaciones de los jefes tienen tope, para no ser fuente infinita de curación','Corregido: ya se puede escribir espacios en los campos de texto','Portadas e imágenes de la página rehechas con el nuevo aspecto, y en cada idioma']],
+    ru:['Арена босса', ['Изолированный бой с боссом: орда отступает, и пока он жив, никто не появляется','Призывы боссов ограничены, чтобы не быть бесконечным источником лечения','Исправлено: в текстовых полях снова работает пробел','Обложки и картинки страницы переделаны в новом стиле и для каждого языка']],
+    ja:['ボスアリーナ', ['ボス戦を隔離：群れは退き、ボスが生きている間は敵が湧かない','ボスの召喚に上限を設定し、無限の回復源にならないように','修正：テキスト入力でスペースが打てるようになりました','カバーとページの画像を新しい見た目で作り直し、各言語版も用意']],
+    ko:['보스 아레나', ['보스전을 분리: 무리가 물러나고 보스가 살아 있는 동안 적이 나오지 않습니다','보스 소환에 상한을 두어 무한 회복원이 되지 않도록 했습니다','수정: 텍스트 입력란에서 스페이스가 다시 동작합니다','표지와 페이지 이미지를 새 비주얼로 다시 제작하고 언어별로 준비했습니다']]}},
+  {v:'1.7.0', tipo:'antiga', t:{
+    pt:['Página, lista de espera e beta', ['Página de lançamento com capa, capturas e tudo sobre o jogo','Lista de espera: deixe seu e-mail e seja avisado quando abrir a próxima janela','Beta por janelas de horário, com contagem regressiva e código de acesso antecipado']],
+    en:['Landing page, waiting list and beta', ['Landing page with cover, screenshots and everything about the game','Waiting list: leave your email and hear about the next window','Beta in timed windows, with a countdown and an early access code']],
+    es:['Página, lista de espera y beta', ['Página de lanzamiento con portada, capturas y todo sobre el juego','Lista de espera: deja tu correo y entérate de la próxima ventana','Beta por ventanas de horario, con cuenta atrás y código de acceso anticipado']],
+    ru:['Страница, список ожидания и бета', ['Страница игры с обложкой, скриншотами и описанием','Список ожидания: оставьте почту и узнайте об открытии следующего окна','Бета по временным окнам, с обратным отсчётом и кодом раннего доступа']],
+    ja:['紹介ページ・ウェイティングリスト・ベータ', ['カバー、スクリーンショット、ゲーム紹介をまとめたページ','ウェイティングリスト：メールを登録すると次の開放をお知らせ','時間枠ごとのベータ：カウントダウンと先行アクセスコード付き']],
+    ko:['소개 페이지, 대기자 명단, 베타', ['표지와 스크린샷, 게임 소개를 담은 페이지','대기자 명단: 이메일을 남기면 다음 개방을 알려드립니다','시간대별 베타: 카운트다운과 선행 접속 코드 제공']]}},
+  {v:'1.6.0', tipo:'antiga', t:{
     pt:['Mais difícil e com feedback', ['Nível sobe bem mais devagar: aos 2 minutos você chega ao 6 em vez do 13','Inimigos ficam fortes mais cedo, em maior número e com elites mais frequentes','Ao abrir o jogo pela primeira vez, você escolhe entrar com conta ou jogar como convidado','Conta e save na nuvem foram para as Opções, junto com o novo envio de feedback']],
     en:['Harder, with feedback', ['Levels come much slower: at 2 minutes you reach level 6 instead of 13','Enemies get strong earlier, in bigger numbers and with more frequent elites','On your first launch you choose between signing in and playing as a guest','Account and cloud save moved to Options, along with the new feedback form']],
     es:['Más difícil y con comentarios', ['Subir de nivel es mucho más lento: a los 2 minutos llegas al 6 en vez del 13','Los enemigos se fortalecen antes, en mayor número y con élites más frecuentes','Al abrir el juego por primera vez eliges entre entrar con cuenta o jugar como invitado','Cuenta y guardado en la nube pasaron a Opciones, junto al nuevo envío de comentarios']],
@@ -7407,6 +7439,8 @@ const FB_STR = {"pt": {"inicio_titulo": "Como você quer jogar?", "inicio_sub": 
 for(const l in FB_STR) Object.assign(STR[l], FB_STR[l]);
 const BETA_STR = {"pt": {"beta_lista": "Entrar na lista de espera", "beta_dias": "{d}d", "beta_espera": "Enquanto isso, entre na lista para ser avisado da próxima janela."}, "en": {"beta_lista": "Join the waiting list", "beta_dias": "{d}d", "beta_espera": "In the meantime, join the list to hear about the next window."}, "es": {"beta_lista": "Unirme a la lista de espera", "beta_dias": "{d}d", "beta_espera": "Mientras tanto, únete a la lista para saber de la próxima ventana."}, "ru": {"beta_lista": "Записаться в список ожидания", "beta_dias": "{d}д", "beta_espera": "А пока запишитесь в список, чтобы узнать о следующем окне."}, "ja": {"beta_lista": "ウェイティングリストに登録", "beta_dias": "{d}日", "beta_espera": "その間に、次の開放を知らせるリストに登録しておきましょう。"}, "ko": {"beta_lista": "대기자 명단에 등록", "beta_dias": "{d}일", "beta_espera": "그동안 다음 개방 소식을 받을 수 있도록 명단에 등록하세요."}};
 for(const l in BETA_STR) Object.assign(STR[l], BETA_STR[l]);
+const ARENA_STR = {"pt": {"arena_aviso": "Arena do chefe: a horda recua. É só você e ele."}, "en": {"arena_aviso": "Boss arena: the horde pulls back. Just you and the boss."}, "es": {"arena_aviso": "Arena del jefe: la horda retrocede. Solo tú y él."}, "ru": {"arena_aviso": "Арена босса: орда отступает. Только вы и он."}, "ja": {"arena_aviso": "ボスアリーナ：群れは退く。あなたとボスだけだ。"}, "ko": {"arena_aviso": "보스 아레나: 무리가 물러납니다. 당신과 보스뿐입니다."}};
+for(const l in ARENA_STR) Object.assign(STR[l], ARENA_STR[l]);
 
 const CONTA = {sdk:null, user:null, ocupado:false, entrando:false, ultima:0, pendente:false, msg:'', conflito:null, jaPerguntou:false};
 const contaLigada = () => !!(CFG.firebase && CFG.firebase.apiKey);

@@ -106,9 +106,9 @@ footer{padding:28px 0 40px;text-align:center;color:var(--osso2);font-size:.92rem
   <div class="env">
     <h2 data-t="telas_titulo"></h2>
     <div class="telas">
-      <img src="/sina/tela-1.jpg" alt="" loading="lazy" width="1280" height="720">
-      <img src="/sina/tela-3.jpg" alt="" loading="lazy" width="1280" height="720">
-      <img src="/sina/tela-2.jpg" alt="" loading="lazy" width="1280" height="720">
+      <img id="tela1" src="/sina/tela-pt-1.jpg" alt="" loading="lazy" width="960" height="540">
+      <img id="tela2" src="/sina/tela-pt-2.jpg" alt="" loading="lazy" width="960" height="540">
+      <img id="tela3" src="/sina/tela-pt-3.jpg" alt="" loading="lazy" width="960" height="540">
     </div>
   </div>
 </section>
@@ -133,8 +133,8 @@ footer{padding:28px 0 40px;text-align:center;color:var(--osso2);font-size:.92rem
 <script>
 /* ===== CONFIGURAÇÃO ===== */
 const BETA = {
-  ativo: true,   // false = jogo liberado para todo mundo
-  codigo: 'SINA2026',   // precisa ser igual ao do jogo                       
+  ativo: true,
+  codigo: 'SINA2026',   // precisa ser igual ao do jogo                       // false = jogo liberado para todo mundo
   janelas: [                         // horários de Brasília
     {de: '2026-09-26T19:00:00-03:00', ate: '2026-09-26T23:59:00-03:00'},
     {de: '2026-09-27T14:00:00-03:00', ate: '2026-09-27T23:59:00-03:00'},
@@ -243,6 +243,7 @@ function aplicarTextos(){
   const t = T[idioma];
   document.documentElement.lang = idioma;
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t[el.dataset.t] || ''; });
+  for(const n of [1,2,3]) document.getElementById('tela'+n).src = `/sina/tela-${idioma}-${n}.jpg`;
   document.getElementById('recursos').innerHTML = t.r.map(([titulo, texto]) =>
     `<div class="cartao"><h3>${titulo}</h3><p>${texto}</p></div>`).join('');
   document.getElementById('idiomas').innerHTML = ['pt','en','es','ru','ja','ko'].map(l =>
