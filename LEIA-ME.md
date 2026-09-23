@@ -117,6 +117,12 @@ service cloud.firestore {
     match /saves/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    match /wishlist/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.email is string
+        && request.resource.data.email.size() < 150;
+      allow read, update, delete: if false;
+    }
     match /feedback/{id} {
       allow create: if request.auth != null
         && request.resource.data.texto is string
@@ -127,7 +133,7 @@ service cloud.firestore {
 }
 ```
 
-Os feedbacks aparecem no **Firestore → Dados → feedback**. Ninguém consegue ler os feedbacks pelo site, só você pelo console.
+Os feedbacks aparecem no **Firestore → Dados → feedback** e os e-mails da lista em **Dados → wishlist**. Ninguém consegue ler os feedbacks pelo site, só você pelo console.
 
 Isso garante que cada jogador só acessa o próprio save.
 
@@ -150,7 +156,32 @@ Com `firebase: null`, o botão Conta some do menu e o jogo funciona só com o sa
 
 **Custo:** a camada gratuita do Firebase cobre com folga um jogo pequeno (50 mil leituras e 20 mil gravações por dia).
 
-## 9. Créditos obrigatórios
+## 9. Página de lançamento, lista de espera e beta
+
+O arquivo `sina/lancamento.html` é a página de divulgação: capa, o que é o Sina, capturas, estado do beta e o formulário da lista de espera. É esse endereço que vale a pena compartilhar, e não o do jogo em si.
+
+**Lista de espera:** os e-mails caem no Firestore, em **Dados → wishlist**, com data, idioma e origem. Dá para exportar pelo console quando quiser avisar todo mundo.
+
+**Janelas do beta.** Configure em dois lugares, com as mesmas datas:
+1. No começo de `sina/lancamento.html`, no bloco `const BETA`.
+2. No `sina/index.html`, no bloco de configuração, campo `beta`.
+
+```js
+beta: {
+  ativo: true,                    // false libera o jogo para todo mundo
+  codigo: 'SINA2026',             // código de acesso antecipado (amigos, streamers)
+  pagina: '/sina/lancamento.html',
+  janelas: [
+    {de: '2026-09-26T19:00:00-03:00', ate: '2026-09-26T23:59:00-03:00'}
+  ]
+}
+```
+
+Fora das janelas, quem abrir o jogo vê uma tela com contagem regressiva, o campo de código e o link para a lista. Quem digita o código certo fica liberado naquele aparelho para sempre.
+
+**Dica de divulgação:** anuncie a janela com um ou dois dias de antecedência e deixe ela curta (3 a 5 horas). Muita gente entrando junto rende mais feedback e dá sensação de evento.
+
+## 10. Créditos obrigatórios
 
 Já estão em Opções → Créditos:
 - Super Pixel Effects Gigapack — Will Tice / unTied Games (crédito exigido pela licença)
