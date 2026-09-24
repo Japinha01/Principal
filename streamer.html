@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="pt-BR" class="guard">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha Guilda</title>
+<meta name="theme-color" content="#14100c">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700;800&family=Cinzel:wght@600;700&display=swap">
+<link rel="stylesheet" href="estilo.css">
+<style>
+.subnav{border-bottom:1px solid var(--line);background:var(--ink)}
+.subnav .wrap{display:flex;gap:4px;overflow-x:auto}
+.subnav button{min-height:52px;padding:0 16px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-weight:700;font-size:16px;cursor:pointer;white-space:nowrap}
+.subnav button:hover{color:var(--text)}
+.subnav button[aria-current="page"]{color:var(--text);border-bottom-color:var(--gold)}
+.subnav .n{display:inline-block;margin-left:6px;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--seal);color:var(--seal-text);font-size:12px}
+.page{padding-block:28px 40px}
+.page h1{font-size:clamp(26px,3.4vw,34px)}
+.lead{color:var(--soft);margin:8px 0 0}
+.status{display:flex;align-items:center;gap:22px;padding:20px 24px;flex-wrap:wrap;margin-top:20px}
+.status .big{width:56px;height:64px;font-size:28px}
+.status .txt{flex:1;min-width:220px}
+.status .txt p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:18px}
+.kpi{padding:18px 20px}
+.kpi b{display:block;font-family:var(--display);font-size:28px;margin-top:6px}
+.kpi small{color:var(--muted);font-size:14px}
+.alerta{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 20px;margin-top:16px;border-color:var(--gold);background:#2f2418}
+.h2row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:28px 0 14px;flex-wrap:wrap}
+.h2row h2{font-size:22px}
+.vazio{padding:30px 24px;text-align:center;color:var(--muted)}
+/* mural */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:26px;align-items:start;margin-top:18px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px}
+.card{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:11px;padding:24px 20px 18px;cursor:pointer;transition:transform .15s}
+.card:hover{transform:translateY(-3px)}
+.card:focus-visible{outline:3px solid var(--gold-2);outline-offset:4px}
+.card.sel{outline:3px solid var(--gold);outline-offset:4px}
+.card.locked{opacity:.62}
+.card::before{content:"";position:absolute;top:9px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--parch-muted);box-shadow:inset 0 -2px 0 var(--parch-text)}
+.card .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .game{font-family:var(--display);font-size:20px;font-weight:700;line-height:1.15}
+.card .by{font-size:14px;color:var(--parch-muted)}
+.card hr{border:0;height:1px;background:#c4ab7a;margin:0}
+.card .reward{font-size:23px;font-weight:800}
+.pips{display:flex;gap:3px}
+.pips i{flex:1;height:8px;border-radius:2px;background:#cdb88d}
+.pips i.on{background:var(--seal)}
+.flag{padding:8px 10px;border-radius:4px;font-size:13px;font-weight:800}
+.flag-lock{background:var(--parch-text);color:var(--text)}
+.flag-full{background:var(--seal);color:var(--seal-text)}
+.flag-mine{background:var(--ok);color:#f3f7ee}
+aside.det{position:sticky;top:90px;overflow:hidden}
+.cover{min-height:150px;padding:22px 24px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;border-bottom:3px solid var(--gold);background:#3a2a1c}
+.cover h2{font-size:26px;color:#fff4e6}
+.cover p{margin:0;color:#f0e4cc;font-size:14px}
+.det .body{padding:22px 24px 24px;display:flex;flex-direction:column;gap:18px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.trio b{display:block;font-size:17px;margin-top:4px}
+.steps{display:flex;justify-content:space-between;gap:4px}
+.steps div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted-2);text-align:center}
+.steps span{width:30px;height:30px;border-radius:50%;border:2px solid var(--line-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.steps .done{color:var(--text)}
+.steps .done span{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.ask{padding:14px 16px;background:var(--ink-3);border:1px solid var(--line);border-radius:6px}
+.ask p{margin:6px 0 0;font-style:italic;white-space:pre-wrap}
+.rules{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.rules li{display:flex;gap:10px;color:var(--soft)}
+.rules svg{flex-shrink:0;margin-top:3px}
+.note{font-size:13px;color:var(--muted);text-align:center;margin:0}
+.box-ok{padding:16px 18px;background:var(--ok-bg);border:1px solid var(--ok);border-radius:6px;color:var(--ok-text)}
+.box-ok b,.box-info b{display:block;font-size:16px;margin-bottom:4px}
+.box-info{padding:16px 18px;background:var(--ink-3);border:1px dashed var(--line-2);border-radius:6px;color:var(--soft)}
+/* minhas quests */
+.mq{display:flex;gap:14px;align-items:center;padding:16px 18px;flex-wrap:wrap;margin-bottom:12px}
+.mq .q{flex:1;min-width:200px}
+.mq .q small{display:block;color:var(--muted);font-size:14px}
+.mq .v{font-weight:800;font-size:18px}
+/* relatório */
+.mets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.mets .panel{padding:16px}
+.mets b{display:block;font-family:var(--display);font-size:24px;margin-top:4px}
+.hbar{display:grid;grid-template-columns:110px minmax(0,1fr) 110px;gap:10px;align-items:center;font-size:14px;margin-bottom:8px}
+.hbar .t{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+.hbar .t i{display:block;height:12px;background:var(--gold)}
+.hbar em{font-style:normal;text-align:right;font-weight:800}
+/* perfil */
+.perfil{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;margin-top:20px}
+.perfil .panel{padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.perfil h2{font-size:20px}
+.kv span{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+.ava-g{width:64px;height:64px;border-radius:50%;background:var(--line);border:2px solid #8a43f0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800}
+.ava-g img{width:100%;height:100%;object-fit:cover}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--parch);color:var(--parch-text);font-weight:800;padding:12px 18px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.5);z-index:20;max-width:calc(100% - 32px)}
+@media (max-width: 1050px){ .layout{grid-template-columns:minmax(0,1fr)} aside.det{position:static;scroll-margin-top:80px} .mets{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width: 700px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .perfil{grid-template-columns:minmax(0,1fr)} .mets{grid-template-columns:repeat(2,minmax(0,1fr))} .hbar{grid-template-columns:80px minmax(0,1fr) 90px} }
+</style>
+</head>
+<body>
+
+<header class="top">
+<div class="wrap">
+<a class="brand" href="index.html" aria-label="Guilda">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a849" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" y1="19" x2="19" y2="13"></line><line x1="16" y1="16" x2="20" y2="20"></line><line x1="19" y1="21" x2="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" y1="14" x2="9" y2="18"></line><line x1="7" y1="17" x2="4" y2="20"></line><line x1="3" y1="19" x2="5" y2="21"></line></svg>
+<b>GUILDA</b>
+</a>
+<div class="right">
+<a href="mestre.html" class="ghost" id="link-mestre" hidden style="min-height:40px;text-decoration:none">Salão do Mestre</a>
+<button type="button" class="ghost" id="sair" style="min-height:40px">Sair</button>
+<div class="me"><div><b id="me-nome"></b><small id="me-rank"></small></div><span class="ava" id="me-ava" style="overflow:hidden"></span></div>
+</div>
+</div>
+</header>
+<nav class="subnav" aria-label="Minha área"><div class="wrap" id="subnav"></div></nav>
+<div id="aviso" class="preview" hidden><div class="wrap"><b>Prévia</b><span id="aviso-txt"></span></div></div>
+
+<main class="wrap page" id="view"></main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+/* ================= utilidades ================= */
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const url = (u) => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch (e) { return ''; } };
+const reais = (n) => { const v = Number(n) || 0; return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+const num = (n, d = 0) => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: d });
+const dia = (d) => d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
+function toast(m) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2800); }
+const ORDEM = ['F', 'D', 'C', 'B', 'A', 'S'];
+const NOME_RANK = { F: 'Iniciante', D: 'Bronze', C: 'Prata', B: 'Ouro', A: 'Elite', S: 'Lenda' };
+const CORES = ['#5b3a22', '#23405a', '#3b2440', '#1f3a3a', '#3a4a1f', '#4a1f1f', '#2f2a4a', '#4a3a1f'];
+const cor = (id) => CORES[[...String(id)].reduce((s, c) => s + c.charCodeAt(0), 0) % CORES.length];
+const CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a849" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+/* ================= estado ================= */
+const st = { view: 'inicio', eu: null, pix: null, quests: [], sel: null, filtro: 'todas', link: '', confirmar: null, demo: false };
+const minhas = () => st.quests.filter((q) => q.minha_id);
+const ativas = () => minhas().filter((q) => ['candidato', 'aceita', 'entregue'].includes(q.minha_status));
+function info(q) {
+  const meu = q.minha_id && q.minha_status !== 'desistiu' ? q.minha_status : null;
+  const bloqueada = ORDEM.indexOf((st.eu && st.eu.rank) || 'F') < ORDEM.indexOf(q.rank_min);
+  const cheia = !meu && Number(q.ocupadas) >= q.vagas;
+  return { meu, bloqueada: !meu && bloqueada, cheia, livres: Math.max(0, q.vagas - Number(q.ocupadas)) };
+}
+
+/* ================= carregar ================= */
+async function carregar() {
+  if (st.demo) return;
+  const [e, p, m] = await Promise.all([
+    Guilda.sb.from('guilda_streamers').select('*').eq('id', st.uid).maybeSingle(),
+    Guilda.sb.from('guilda_streamer_pagamento').select('*').eq('streamer_id', st.uid).maybeSingle(),
+    Guilda.sb.rpc('guilda_mural')
+  ]);
+  [e, p, m].forEach((r) => { if (r.error) console.error(r.error); });
+  st.eu = e.data; st.pix = p.data; st.quests = m.data || [];
+  if (!st.sel || !st.quests.some((q) => q.id === st.sel)) st.sel = (st.quests.find((q) => q.status === 'publicada') || st.quests[0] || {}).id || null;
+}
+async function rpc(nome, args) {
+  if (st.demo) return { data: null, error: null };
+  return Guilda.sb.rpc(nome, args);
+}
+
+/* ================= telas ================= */
+function telaInicio() {
+  const eu = st.eu || {}, ms = minhas();
+  const pagas = ms.filter((q) => q.minha_status === 'paga');
+  const aReceber = ms.filter((q) => q.minha_status === 'validada');
+  const concluidas = ms.filter((q) => ['validada', 'paga'].includes(q.minha_status)).length;
+  const mes = new Date().toISOString().slice(0, 7);
+  const ganhosMes = pagas.filter((q) => (q.paga_em || '').slice(0, 7) === mes).reduce((s, q) => s + Number(q.recompensa_brl), 0);
+  const livre = st.quests.filter((q) => q.status === 'publicada' && !info(q).bloqueada && !info(q).cheia && !info(q).meu).length;
+  const pendentes = ms.filter((q) => q.minha_status === 'aceita');
+  return `<h1>Olá, ${esc(Guilda.infoTwitch({ user_metadata: { name: eu.twitch_login, nickname: eu.nome_exibicao } }).nome || '')}</h1>
+  <p class="lead">Suas quests, seus ganhos e o mural num só lugar.</p>
+  <section class="panel status"><span class="shield r-${esc(eu.rank || 'F')} big">${esc(eu.rank || 'F')}</span>
+    <div class="txt"><h2 style="font-size:19px">Rank ${esc(eu.rank || 'F')} · ${NOME_RANK[eu.rank || 'F']}</h2><p>Seu rank é definido pelo Mestre da Guilda a partir das quests concluídas e das avaliações dos estúdios. Rank maior libera quests maiores.</p></div>
+    <button type="button" class="btn" data-ir="mural">Ver o mural · ${livre} ${livre === 1 ? 'quest' : 'quests'} pra você</button></section>
+  ${!st.pix ? `<div class="panel alerta"><span><b style="color:var(--gold)">Cadastre sua chave Pix.</b> Sem ela não conseguimos te pagar quando a quest for validada.</span><button type="button" class="ghost" data-ir="perfil">Cadastrar chave Pix</button></div>` : ''}
+  <div class="kpis num">
+    <div class="panel kpi"><span class="dlbl">Quests ativas</span><b>${ativas().length}</b><small>${pendentes.length} aguardando sua live</small></div>
+    <div class="panel kpi"><span class="dlbl">Concluídas</span><b>${concluidas}</b><small>validadas pela guilda</small></div>
+    <div class="panel kpi"><span class="dlbl">Ganhos no mês</span><b>${reais(ganhosMes)}</b><small>${reais(pagas.reduce((s, q) => s + Number(q.recompensa_brl), 0))} no total</small></div>
+    <div class="panel kpi"><span class="dlbl">A receber</span><b style="color:var(--gold)">${reais(aReceber.reduce((s, q) => s + Number(q.recompensa_brl), 0))}</b><small>validadas, Pix a caminho</small></div>
+  </div>
+  ${pendentes.length ? `<div class="h2row"><h2>Aguardando sua live</h2></div>${pendentes.map(itemMinha).join('')}` : ''}`;
+}
+
+function cardQuest(q) {
+  const i = info(q);
+  const pips = Array.from({ length: q.vagas }, (_, k) => `<i class="${k < Number(q.ocupadas) ? 'on' : ''}"></i>`).join('');
+  let flag = '';
+  if (i.meu) flag = `<div class="flag flag-mine">${esc(STATUS[i.meu].curto)}</div>`;
+  else if (i.bloqueada) flag = `<div class="flag flag-lock">Bloqueada: requer rank ${esc(q.rank_min)}</div>`;
+  else if (i.cheia) flag = '<div class="flag flag-full">Vagas esgotadas</div>';
+  return `<button type="button" class="card parch${st.sel === q.id ? ' sel' : ''}${i.bloqueada ? ' locked' : ''}" data-q="${esc(q.id)}" aria-label="Abrir quest ${esc(q.jogo)}">
+    <div class="row"><div style="display:flex;align-items:center;gap:8px"><span class="shield r-${esc(q.rank_min)}">${esc(q.rank_min)}</span><span class="lbl">Rank ${esc(q.rank_min)} ou maior</span></div>${q.genero ? `<span class="tag">${esc(q.genero)}</span>` : ''}</div>
+    <div><div class="game">${esc(q.jogo)}</div><div class="by">por ${esc(q.estudio)}</div></div>
+    <hr>
+    <div class="row" style="align-items:flex-end"><div><div class="lbl">Recompensa</div><div class="reward num">${reais(q.recompensa_brl)}</div></div>
+    <div style="text-align:right"><div class="lbl">Vagas</div><div style="font-weight:800" class="num">${i.livres} de ${q.vagas} livres</div></div></div>
+    <div class="pips" aria-hidden="true">${pips}</div>
+    <div class="row"><span style="font-size:13px;color:var(--parch-muted)">${q.data_fim ? 'até ' + dia(q.data_fim) + ' · ' : ''}${q.minutos} min</span><span class="seal">${esc(q.evento)}</span></div>
+    ${flag}
+  </button>`;
+}
+
+const STATUS = {
+  candidato: { curto: 'Candidatura enviada', passo: 1 },
+  aceita: { curto: 'Aceita · faça a live', passo: 1 },
+  entregue: { curto: 'Entregue · em validação', passo: 2 },
+  validada: { curto: 'Validada · Pix a caminho', passo: 3 },
+  paga: { curto: 'Paga', passo: 4 },
+  recusada: { curto: 'Não selecionado', passo: 0 },
+  falhou: { curto: 'Entrega não aceita', passo: 0 },
+  desistiu: { curto: 'Você desistiu', passo: 0 }
+};
+
+function painelQuest(q) {
+  if (!q) return '<div class="vazio">Escolha uma quest no mural.</div>';
+  const i = info(q);
+  const idx = i.meu ? STATUS[i.meu].passo : 0;
+  const passos = ['Aberta', 'Aceita', 'Entregue', 'Validada', 'Paga'].map((n, k) => `<div class="${k <= idx ? 'done' : ''}"><span>${k + 1}</span>${n}</div>`).join('');
+  const regras = [`Mínimo de ${q.minutos} min de live jogando`, 'Nome do jogo no título da live', 'Link da Steam fixado no chat', 'Marcar a live como conteúdo patrocinado (conteúdo de marca)', 'Enviar o link da gravação em até 48h depois da live']
+    .map((r) => `<li>${CHECK}<span>${r}</span></li>`).join('');
+  let acao = '';
+  const m = i.meu;
+  if (!m) {
+    if (q.status !== 'publicada') acao = '<div class="box-info">Esta quest saiu do mural.</div>';
+    else if (i.bloqueada) acao = `<div class="box-info">Esta quest pede rank <b style="display:inline">${esc(q.rank_min)}</b>. Conclua mais quests com boa avaliação para subir de rank.</div>`;
+    else if (i.cheia) acao = '<div class="box-info">As vagas desta quest acabaram.</div>';
+    else acao = q.modo === 'manual'
+      ? `<button type="button" class="btn" data-acao="aceitar">Candidatar-se</button><p class="note">Nesta quest o estúdio escolhe os streamers pelo perfil. Você recebe a resposta aqui.</p>`
+      : `<button type="button" class="btn" data-acao="aceitar">Aceitar quest</button><p class="note">O pagamento já está guardado pela guilda e é liberado depois que a sua entrega é validada.</p>`;
+  } else if (m === 'candidato') {
+    acao = `<div class="box-info"><b>Candidatura enviada</b>O estúdio vai olhar seu perfil. Se for aprovado, a quest vira "aceita" e você pode fazer a live.</div><button type="button" class="ghost" data-acao="desistir">${st.confirmar === q.minha_id ? 'Clique de novo para desistir' : 'Retirar candidatura'}</button>`;
+  } else if (m === 'aceita') {
+    acao = `<div class="field"><label class="dlbl" for="link">Link da gravação da live</label>
+      <input class="input" id="link" type="url" placeholder="https://www.twitch.tv/videos/…" value="${esc(st.link)}"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" style="flex:1" data-acao="entregar">Enviar entrega</button><button type="button" class="ghost" data-acao="desistir">${st.confirmar === q.minha_id ? 'Confirmar desistência' : 'Desistir'}</button></div>
+      <p class="note" id="aviso-link">Na Twitch: Painel do criador → Conteúdo → Gravações → copie o link da live. Deixe a gravação disponível até a validação.</p>
+      <div class="box-info" style="font-size:14px"><b style="font-size:15px">Conferência automática</b>Durante a live, a Guilda registra sozinha os viewers, a categoria e o título. Para dar tudo certo: ative <b style="display:inline;font-size:14px">Armazenar transmissões anteriores</b> (Configurações da Twitch → Transmissão), use a <b style="display:inline;font-size:14px">categoria do jogo</b> e coloque o <b style="display:inline;font-size:14px">nome do jogo no título</b>.</div>`;
+  } else if (m === 'entregue') {
+    acao = `<div class="box-ok"><b>Entrega enviada</b>O Mestre da Guilda está conferindo a gravação. Validada, ${reais(q.recompensa_brl)} vai para a sua chave Pix.</div>${url(q.meu_link) ? `<a href="${esc(url(q.meu_link))}" target="_blank" rel="noopener">Ver o link que você enviou</a>` : ''}`;
+  } else if (m === 'validada') {
+    acao = `<div class="box-ok"><b>Validada!</b>${reais(q.recompensa_brl)} a caminho da sua chave Pix.${st.pix ? '' : ' <b style="display:inline;color:#ffd9d2">Cadastre sua chave Pix no Perfil.</b>'}</div>`;
+  } else if (m === 'paga') {
+    acao = `<div class="box-ok"><b>Paga em ${dia(q.paga_em)}</b>${reais(q.recompensa_brl)} enviados. Obrigado pela quest!</div>`;
+  } else if (m === 'recusada') {
+    acao = '<div class="box-info"><b>Não foi desta vez</b>O estúdio escolheu outros streamers para esta quest.</div>';
+  } else if (m === 'falhou') {
+    acao = '<div class="box-info"><b>Entrega não aceita</b>A live não cumpriu as regras da quest. Fale com a guilda se achar que houve engano.</div>';
+  }
+  return `<div class="cover" style="background:${cor(q.id)}"><span class="seal" style="align-self:flex-start">${esc(q.evento)}</span><h2>${esc(q.jogo)}</h2><p>${esc(q.genero || '')}${q.genero ? ' · ' : ''}por ${esc(q.estudio)}</p></div>
+  <div class="body">
+    <div class="trio num"><div><span class="dlbl">Recompensa</span><b style="color:var(--gold);font-size:21px">${reais(q.recompensa_brl)}</b></div><div><span class="dlbl">Vagas</span><b>${info(q).livres} de ${q.vagas}</b></div><div><span class="dlbl">Prazo</span><b>${q.data_fim ? dia(q.data_fim) : 'aberto'}</b></div></div>
+    <div class="steps" aria-label="Andamento">${passos}</div>
+    ${q.pedido ? `<div class="ask"><span class="dlbl">Pedido do estúdio</span><p>“${esc(q.pedido)}”</p></div>` : ''}
+    <div><span class="dlbl">Regras da quest</span><ul class="rules">${regras}</ul></div>
+    ${url(q.steam_url) ? `<a href="${esc(url(q.steam_url))}" target="_blank" rel="noopener">Abrir o jogo na Steam</a>` : ''}
+    ${acao}
+  </div>`;
+}
+
+function telaMural() {
+  const G = [...new Set(st.quests.filter((q) => q.status === 'publicada' && q.genero).map((q) => q.genero))];
+  const F = [['todas', 'Todas'], ['minhas', 'Disponíveis pra mim']].concat(G.map((g) => [g, g]));
+  const lista = st.quests.filter((q) => q.status === 'publicada').filter((q) => {
+    const i = info(q);
+    if (st.filtro === 'todas') return true;
+    if (st.filtro === 'minhas') return !i.bloqueada && !i.cheia && !i.meu;
+    return q.genero === st.filtro;
+  });
+  const sel = st.quests.find((q) => q.id === st.sel);
+  return `<h1>Mural de Quests</h1><p class="lead">Quests pagas de estúdios verificados. Você só vê o valor que recebe.</p>
+  <div class="layout"><div>
+    <div class="filters" role="group" aria-label="Filtrar">${F.map(([id, n]) => `<button type="button" class="pill${st.filtro === id ? ' on' : ''}" aria-pressed="${st.filtro === id}" data-filtro="${esc(id)}">${esc(n)}</button>`).join('')}</div>
+    ${lista.length ? `<div class="grid">${lista.map(cardQuest).join('')}</div>` : '<div class="panel vazio">Nenhuma quest aberta agora. Quando um estúdio publicar, ela aparece aqui.</div>'}
+  </div>
+  <aside class="panel det" id="detalhe" aria-label="Detalhes da quest">${painelQuest(sel)}</aside></div>`;
+}
+
+function itemMinha(q) {
+  const s = STATUS[q.minha_status] || { curto: q.minha_status };
+  const chip = ['validada', 'paga'].includes(q.minha_status) ? 'chip-ok' : ['aceita', 'candidato'].includes(q.minha_status) ? 'chip-gold' : q.minha_status === 'entregue' ? 'chip-okl' : 'chip-mute';
+  return `<div class="panel mq"><span class="shield r-${esc(q.rank_min)}">${esc(q.rank_min)}</span>
+    <div class="q"><b>${esc(q.jogo)}</b><small>${esc(q.estudio)} · ${q.minutos} min${q.data_fim ? ' · até ' + dia(q.data_fim) : ''}</small></div>
+    <span class="v num">${reais(q.recompensa_brl)}</span><span class="chip ${chip}">${esc(s.curto)}</span>
+    <button type="button" class="ghost" data-abrir="${esc(q.id)}">${q.minha_status === 'aceita' ? 'Enviar live' : 'Abrir'}</button></div>`;
+}
+function telaMinhas() {
+  const ms = minhas();
+  const grupo = (t, l) => l.length ? `<div class="h2row"><h2>${t}</h2></div>${l.map(itemMinha).join('')}` : '';
+  const and = ms.filter((q) => ['candidato', 'aceita', 'entregue'].includes(q.minha_status));
+  const conc = ms.filter((q) => ['validada', 'paga'].includes(q.minha_status));
+  const outras = ms.filter((q) => ['recusada', 'falhou', 'desistiu'].includes(q.minha_status));
+  return `<h1>Minhas quests</h1><p class="lead">Tudo o que você aceitou, entregou e recebeu.</p>
+  ${ms.length ? grupo('Em andamento', and) + grupo('Concluídas', conc) + grupo('Encerradas', outras) : '<div class="panel vazio" style="margin-top:20px">Você ainda não pegou nenhuma quest. <button type="button" class="linkbtn" data-ir="mural">Abrir o mural</button></div>'}`;
+}
+
+function telaRelatorio() {
+  const val = minhas().filter((q) => ['validada', 'paga'].includes(q.minha_status));
+  const pagas = val.filter((q) => q.minha_status === 'paga');
+  const horas = val.reduce((s, q) => s + (q.duracao_min || 0), 0) / 60;
+  const mediaV = val.length ? val.reduce((s, q) => s + (q.media_viewers || 0), 0) / val.length : 0;
+  const pico = val.reduce((m, q) => Math.max(m, q.pico_viewers || 0), 0);
+  const clipes = val.reduce((s, q) => s + (q.clipes || 0), 0);
+  const porMes = {};
+  pagas.forEach((q) => { const k = (q.paga_em || '').slice(0, 7); if (k) porMes[k] = (porMes[k] || 0) + Number(q.recompensa_brl); });
+  const meses = Object.keys(porMes).sort().slice(-6);
+  const max = Math.max(1, ...meses.map((k) => porMes[k]));
+  const nomeMes = (k) => new Date(k + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+  return `<h1>Relatório</h1><p class="lead">Seus números nas quests da guilda. É isso que os estúdios veem quando olham o seu perfil.</p>
+  <div class="mets num" style="margin-top:20px">
+    <div class="panel"><span class="dlbl">Quests validadas</span><b>${val.length}</b></div>
+    <div class="panel"><span class="dlbl">Horas ao vivo</span><b>${num(horas, 1)}</b></div>
+    <div class="panel"><span class="dlbl">Média de viewers</span><b>${num(mediaV)}</b></div>
+    <div class="panel"><span class="dlbl">Maior pico</span><b>${num(pico)}</b></div>
+    <div class="panel"><span class="dlbl">Clipes</span><b>${num(clipes)}</b></div>
+  </div>
+  <div class="h2row"><h2>Ganhos por mês</h2><span style="color:var(--muted)">Total recebido: <b style="color:var(--gold)">${reais(pagas.reduce((s, q) => s + Number(q.recompensa_brl), 0))}</b></span></div>
+  <div class="panel" style="padding:20px 22px">${meses.length ? meses.map((k) => `<div class="hbar"><span>${nomeMes(k)}</span><span class="t"><i style="width:${(porMes[k] / max) * 100}%"></i></span><em class="num">${reais(porMes[k])}</em></div>`).join('') : '<div class="vazio" style="padding:10px">Seus ganhos aparecem aqui depois do primeiro Pix.</div>'}</div>
+  ${val.length ? `<div class="h2row"><h2>Histórico</h2></div><div class="panel scroll-x"><table class="t num"><thead><tr><th>Quest</th><th>Estúdio</th><th>Duração</th><th>Média</th><th>Pico</th><th>Recebido</th></tr></thead><tbody>${val.map((q) => `<tr><td><b>${esc(q.jogo)}</b></td><td>${esc(q.estudio)}</td><td>${num(q.duracao_min)} min</td><td>${num(q.media_viewers)}</td><td>${num(q.pico_viewers)}</td><td>${q.minha_status === 'paga' ? reais(q.recompensa_brl) : 'a caminho'}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+}
+
+function telaPerfil() {
+  const eu = st.eu || {}, p = st.pix || {};
+  const foto = url(eu.avatar_url) ? `<img src="${esc(url(eu.avatar_url))}" alt="">` : esc((eu.nome_exibicao || '?').slice(0, 2).toUpperCase());
+  const TIPOS = [['cpf', 'CPF'], ['cnpj', 'CNPJ'], ['email', 'E-mail'], ['telefone', 'Celular'], ['aleatoria', 'Chave aleatória']];
+  return `<h1>Perfil</h1><p class="lead">Seu canal, seus dados e onde você recebe.</p>
+  <div class="perfil">
+    <section class="panel"><div style="display:flex;gap:14px;align-items:center"><div class="ava-g">${foto}</div>
+      <div><h2>${esc(eu.nome_exibicao || eu.twitch_login || '')}</h2><div style="color:var(--muted)">${eu.twitch_login ? `<a href="https://twitch.tv/${encodeURIComponent(eu.twitch_login)}" target="_blank" rel="noopener">twitch.tv/${esc(eu.twitch_login)}</a>` : ''} · ${eu.twitch_tipo === 'partner' ? 'Parceiro' : eu.twitch_tipo === 'affiliate' ? 'Afiliado' : 'Canal'}</div></div>
+      <span class="shield r-${esc(eu.rank || 'F')}" style="margin-left:auto;width:40px;height:46px;font-size:20px">${esc(eu.rank || 'F')}</span></div>
+      <div class="kv"><span>E-mail para avisos</span>${esc(eu.email_aviso || eu.email || '—')}</div>
+      <div class="kv"><span>Contato</span>${esc(eu.contato || '—')}</div>
+      <div class="kv"><span>Gêneros</span>${esc((eu.generos || []).join(', ') || '—')}</div>
+      <div class="kv"><span>Horários</span>${esc((eu.horarios || []).join(', ') || '—')}</div>
+      <label class="check" style="display:flex;gap:12px;align-items:flex-start;color:var(--soft);font-size:15px"><input type="checkbox" id="receber" ${eu.receber_emails !== false ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--gold);flex-shrink:0;margin-top:2px"><span>Receber e-mail quando surgir uma quest nova do meu rank</span></label>
+      <div><a class="ghost" href="cadastro-streamer.html" style="text-decoration:none">Editar cadastro</a></div>
+    </section>
+    <section class="panel"><h2>Chave Pix</h2>
+      <p style="margin:0;color:var(--soft);font-size:15px">É para onde vai o pagamento das quests validadas. Só você e o Mestre da Guilda veem esta informação.</p>
+      <form id="form-pix" novalidate style="display:flex;flex-direction:column;gap:14px">
+        <div class="field"><label class="dlbl" for="pix-tipo">Tipo de chave</label><select class="input" id="pix-tipo">${TIPOS.map(([v, n]) => `<option value="${v}"${p.tipo_chave === v ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div class="field"><label class="dlbl" for="pix-chave">Chave</label><input class="input" id="pix-chave" value="${esc(p.chave_pix || '')}" autocomplete="off"></div>
+        <div class="field"><label class="dlbl" for="pix-nome">Nome do titular da conta</label><input class="input" id="pix-nome" value="${esc(p.nome_titular || '')}" autocomplete="name"></div>
+        <div id="pix-erro" class="alert alert-err" hidden></div>
+        <button type="submit" class="btn">${st.pix ? 'Atualizar chave Pix' : 'Salvar chave Pix'}</button>
+      </form>
+    </section>
+  </div>`;
+}
+
+function render() {
+  const eu = st.eu || {};
+  const nAceitas = minhas().filter((q) => q.minha_status === 'aceita').length;
+  const V = [['inicio', 'Início'], ['mural', 'Mural'], ['minhas', 'Minhas quests'], ['relatorio', 'Relatório'], ['perfil', 'Perfil']];
+  $('subnav').innerHTML = V.map(([v, n]) => `<button type="button" data-ir="${v}"${st.view === v ? ' aria-current="page"' : ''}>${n}${v === 'minhas' && nAceitas ? ` <span class="n">${nAceitas}</span>` : ''}</button>`).join('');
+  $('me-nome').textContent = eu.nome_exibicao || eu.twitch_login || '';
+  $('me-rank').textContent = 'Rank ' + (eu.rank || 'F') + ' · ' + NOME_RANK[eu.rank || 'F'];
+  const ava = $('me-ava'); ava.textContent = '';
+  if (url(eu.avatar_url)) { const i = document.createElement('img'); i.src = url(eu.avatar_url); i.alt = ''; i.style.cssText = 'width:100%;height:100%;object-fit:cover'; ava.appendChild(i); } else ava.textContent = (eu.nome_exibicao || '?').slice(0, 2).toUpperCase();
+  $('view').innerHTML = { inicio: telaInicio, mural: telaMural, minhas: telaMinhas, relatorio: telaRelatorio, perfil: telaPerfil }[st.view]();
+}
+
+/* ================= ações ================= */
+function ir(v) { st.view = v; st.confirmar = null; render(); window.scrollTo({ top: 0 }); history.replaceState(null, '', '#' + v); }
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.ir) { ir(d.ir); return; }
+  if (d.filtro) { st.filtro = d.filtro; render(); return; }
+  if (d.q || d.abrir) {
+    st.sel = d.q || d.abrir; st.link = ''; st.confirmar = null;
+    if (d.abrir) ir('mural'); else render();
+    if (window.matchMedia('(max-width: 1050px)').matches) $('detalhe').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  if (d.acao) {
+    const q = st.quests.find((x) => x.id === st.sel); if (!q) return;
+    if (d.acao === 'aceitar') {
+      const { data, error } = await rpc('guilda_aceitar_quest', { cid: q.id });
+      if (error) { toast(error.message); return; }
+      if (st.demo) { q.minha_id = 'd' + Date.now(); q.minha_status = q.modo === 'manual' ? 'candidato' : 'aceita'; if (q.modo !== 'manual') q.ocupadas = Number(q.ocupadas) + 1; }
+      else await carregar();
+      toast((data || q.minha_status) === 'candidato' ? 'Candidatura enviada' : 'Quest aceita! Agora é fazer a live.');
+    } else if (d.acao === 'desistir') {
+      if (st.confirmar !== q.minha_id) { st.confirmar = q.minha_id; render(); return; }
+      const { error } = await rpc('guilda_desistir_quest', { pid: q.minha_id });
+      if (error) { toast(error.message); return; }
+      if (st.demo) { if (q.minha_status === 'aceita') q.ocupadas = Number(q.ocupadas) - 1; q.minha_status = 'desistiu'; } else await carregar();
+      st.confirmar = null; toast('Você saiu da quest');
+    } else if (d.acao === 'entregar') {
+      const link = st.link.trim();
+      if (!/^https:\/\/(www\.|m\.)?(twitch\.tv|youtube\.com|youtu\.be|kick\.com)\//i.test(link)) { $('aviso-link').textContent = 'Cole o link da gravação (Twitch, YouTube ou Kick), começando com https://'; $('link').focus(); return; }
+      const { error } = await rpc('guilda_entregar_quest', { pid: q.minha_id, link });
+      if (error) { toast(error.message); return; }
+      if (st.demo) { q.minha_status = 'entregue'; q.meu_link = link; q.entregue_em = new Date().toISOString(); } else await carregar();
+      st.link = ''; toast('Entrega enviada!');
+    }
+    render(); return;
+  }
+  if (b.id === 'sair') Guilda.sair();
+});
+document.addEventListener('input', (e) => { if (e.target.id === 'link') st.link = e.target.value; });
+document.addEventListener('change', async (e) => {
+  if (e.target.id !== 'receber') return;
+  const v = e.target.checked;
+  if (!st.demo) {
+    const { error } = await Guilda.sb.from('guilda_streamers').update({ receber_emails: v }).eq('id', st.uid);
+    if (error) { console.error(error); e.target.checked = !v; toast('Não deu para salvar agora.'); return; }
+  }
+  st.eu.receber_emails = v; toast(v ? 'Você vai receber os avisos de quest nova' : 'Avisos de quest nova desligados');
+});
+document.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'form-pix') return;
+  e.preventDefault();
+  const erro = $('pix-erro'); erro.hidden = true;
+  const d = { streamer_id: st.uid, tipo_chave: $('pix-tipo').value, chave_pix: $('pix-chave').value.trim(), nome_titular: $('pix-nome').value.trim() };
+  if (d.chave_pix.length < 3 || d.nome_titular.length < 2) { erro.textContent = 'Preencha a chave e o nome do titular.'; erro.hidden = false; return; }
+  if (!st.demo) {
+    const { error } = await Guilda.sb.from('guilda_streamer_pagamento').upsert(Object.assign(d, { atualizado_em: new Date().toISOString() }));
+    if (error) { console.error(error); erro.textContent = 'Não deu para salvar agora. Tente de novo.'; erro.hidden = false; return; }
+  }
+  st.pix = d; render(); toast('Chave Pix salva');
+});
+
+/* ================= demonstração ================= */
+function carregarDemo() {
+  st.eu = { twitch_login: 'lunafps', nome_exibicao: 'LunaFPS', rank: 'C', twitch_tipo: 'affiliate', email_aviso: 'luna@email.com', contato: '(11) 90000-0000', generos: ['Roguelite', 'FPS'], horarios: ['Noite'] };
+  const Q = (o) => Object.assign({ status: 'publicada', minutos: 60, modo: 'auto', ocupadas: 0, estudio: 'Estúdio Indie' }, o);
+  st.quests = [
+    Q({ id: 'q1', jogo: 'Hollow Forge', genero: 'Roguelite', estudio: 'Ember Hollow Studio', rank_min: 'D', recompensa_brl: 120, vagas: 10, ocupadas: 6, evento: 'Steam Next Fest', data_fim: '2026-10-26', pedido: 'Mostrem o chefe do andar 3 e testem o co-op!', steam_url: 'https://store.steampowered.com/app/123456' }),
+    Q({ id: 'q2', jogo: 'Neon Tollgate', genero: 'FPS', estudio: 'Kestrel Games', rank_min: 'C', recompensa_brl: 180, vagas: 6, ocupadas: 2, evento: 'Steam Next Fest', modo: 'manual' }),
+    Q({ id: 'q3', jogo: 'A Casa dos Sinos', genero: 'Terror', estudio: 'Estúdio Lamparina', rank_min: 'F', recompensa_brl: 80, vagas: 8, ocupadas: 8, evento: 'Demo / Playtest' }),
+    Q({ id: 'q4', jogo: 'Starfall Tactics', genero: 'Estratégia', estudio: 'Moonrail', rank_min: 'B', recompensa_brl: 420, vagas: 4, ocupadas: 1, evento: 'Lançamento', minutos: 90 }),
+    Q({ id: 'q5', jogo: 'Brejo Brawl', genero: 'Co-op / Party', estudio: 'Sapo Rei Games', rank_min: 'F', recompensa_brl: 80, vagas: 12, ocupadas: 5, evento: 'Lançamento', minha_id: 'm5', minha_status: 'aceita' }),
+    Q({ id: 'q6', jogo: 'Dust Pilgrim', genero: 'RPG', estudio: 'Grey Lantern', rank_min: 'F', recompensa_brl: 120, vagas: 5, ocupadas: 5, evento: 'Lançamento', status: 'encerrada', minha_id: 'm6', minha_status: 'paga', paga_em: new Date().toISOString(), duracao_min: 84, media_viewers: 62, pico_viewers: 97, clipes: 3 }),
+    Q({ id: 'q7', jogo: 'Tiny Kingdoms', genero: 'Estratégia', estudio: 'Moonrail', rank_min: 'D', recompensa_brl: 168, vagas: 5, ocupadas: 5, evento: 'Demo / Playtest', status: 'encerrada', minha_id: 'm7', minha_status: 'validada', duracao_min: 95, media_viewers: 71, pico_viewers: 120, clipes: 2, minutos: 90 })
+  ];
+  st.sel = 'q1';
+}
+
+/* ================= início ================= */
+(async function () {
+  const r = await Guilda.exigir('streamer_aprovado');
+  if (r.demo) { st.demo = true; $('aviso').hidden = false; $('aviso-txt').textContent = 'Dados de exemplo. Coloque as chaves do Supabase no config.js.'; carregarDemo(); }
+  else {
+    st.uid = r.sessao.user.id;
+    await carregar();
+    if ((!st.eu || st.eu.status !== 'aprovado') && r.papel.admin) {
+      $('aviso').hidden = false; $('aviso-txt').textContent = 'Você está vendo como Mestre. As ações de streamer só funcionam com um cadastro de streamer aprovado.';
+      if (!st.eu) st.eu = { nome_exibicao: 'Mestre', rank: 'S' };
+    }
+  }
+  if (r.papel && r.papel.admin) $('link-mestre').hidden = false;
+  const h = location.hash.replace('#', '');
+  if (['mural', 'minhas', 'relatorio', 'perfil'].includes(h)) st.view = h;
+  render();
+})();
+</script>
+</body>
+</html>

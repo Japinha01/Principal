@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="pt-BR" class="guard">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salão do Mestre · Guilda</title>
+<meta name="theme-color" content="#14100c">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700;800&family=Cinzel:wght@600;700&display=swap">
+<link rel="stylesheet" href="estilo.css">
+<style>
+.titulo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:28px 20px}
+.titulo h1{font-size:clamp(26px,3.4vw,34px)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.kpi{padding:18px 20px}
+.kpi b{display:block;font-family:var(--display);font-size:30px;margin-top:6px}
+.kpi small{color:var(--muted);font-size:14px}
+.kpi.alerta{border-color:var(--gold);background:#2f2418}
+.kpi.alerta b,.kpi.alerta .dlbl{color:var(--gold)}
+.tabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{min-height:50px;padding:0 16px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-weight:700;font-size:16px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--gold)}
+.tab .n{display:inline-block;margin-left:6px;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--seal);color:var(--seal-text);font-size:12px}
+.barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:16px 18px 6px}
+.barra .input{max-width:280px;min-height:44px}
+.lista{display:flex;flex-direction:column;gap:12px;padding:10px 18px 20px}
+.vazio{padding:28px 18px;color:var(--muted);text-align:center}
+.item{background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.item.pend{border-left:3px solid var(--gold)}
+.topo{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.foto{width:48px;height:48px;border-radius:50%;background:var(--line);border:2px solid var(--line-2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+.foto img{width:100%;height:100%;object-fit:cover}
+.quem{flex:1;min-width:200px}
+.quem b{font-size:17px}
+.quem .sub{font-size:14px;color:var(--muted)}
+.fatos{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--soft)}
+.fatos span b{color:var(--text)}
+.acoes{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rkb{width:44px;height:44px;border-radius:6px;border:1px solid var(--line-2);background:var(--ink-2);color:var(--text);font-family:var(--display);font-weight:700;cursor:pointer}
+.rkb:hover{border-color:var(--gold)}
+.rkb.sug{background:var(--gold);border-color:var(--gold);color:var(--gold-ink)}
+.btn-s{min-height:44px;padding:0 14px;font-size:15px}
+details summary{cursor:pointer;color:var(--gold);font-weight:700;font-size:14px;list-style:none;min-height:32px;display:flex;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details[open] summary{margin-bottom:10px}
+.det{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px;font-size:15px}
+.det div span{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+.det .full{grid-column:1/-1}
+.det p{margin:2px 0 0;white-space:pre-wrap;color:var(--soft)}
+.nota{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.nota textarea{flex:1;min-width:220px;min-height:60px}
+.checks{display:flex;gap:6px;flex-wrap:wrap}
+.pesq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:18px}
+.pesq .panel{padding:18px 20px;background:var(--ink)}
+.pesq h3{font-size:18px;margin-bottom:12px}
+.hbar{display:grid;grid-template-columns:180px minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:14px;margin-bottom:8px}
+.hbar .t{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+.hbar .t i{display:block;height:12px;background:var(--gold)}
+.hbar em{font-style:normal;text-align:right;color:var(--text);font-weight:800}
+.coment{border-top:1px solid var(--line);padding-block:10px;font-size:15px;color:var(--soft)}
+.coment b{color:var(--text)}
+.breve{padding:28px 18px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--parch);color:var(--parch-text);font-weight:800;padding:12px 18px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.5);z-index:20}
+@media (max-width: 900px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .pesq{grid-template-columns:minmax(0,1fr)} }
+@media (max-width: 560px){ .det{grid-template-columns:minmax(0,1fr)} .hbar{grid-template-columns:120px minmax(0,1fr) 32px} .lista,.barra{padding-inline:12px} }
+</style>
+</head>
+<body>
+
+<header class="top">
+<div class="wrap">
+<a class="brand" href="index.html" aria-label="Guilda">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a849" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" y1="19" x2="19" y2="13"></line><line x1="16" y1="16" x2="20" y2="20"></line><line x1="19" y1="21" x2="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" y1="14" x2="9" y2="18"></line><line x1="7" y1="17" x2="4" y2="20"></line><line x1="3" y1="19" x2="5" y2="21"></line></svg>
+<b>GUILDA</b>
+</a>
+<nav class="nav" aria-label="Páginas">
+<a href="mestre.html" aria-current="page">Salão do Mestre</a>
+<a href="streamer.html#mural">Mural</a>
+<a href="dev.html?lang=pt">Painel do Dev</a>
+</nav>
+<div class="right">
+<button type="button" class="ghost" id="sair" style="min-height:40px">Sair</button>
+<div class="me"><div><b id="me-nome">Mestre</b><small style="color:var(--gold)">Mestre da Guilda</small></div><span class="ava" id="me-ava" style="background:var(--seal);color:var(--seal-text)">M</span></div>
+</div>
+</div>
+</header>
+
+<div id="demo-banner" class="preview" hidden><div class="wrap"><b>Demonstração</b><span>Dados de exemplo. Coloque as chaves no config.js para ver os cadastros reais.</span></div></div>
+
+<main class="wrap">
+<div class="titulo">
+<h1>Salão do Mestre</h1>
+<button type="button" class="ghost" id="atualizar">Atualizar</button>
+</div>
+
+<section class="kpis num" aria-label="Resumo">
+<div class="panel kpi" id="k1"><span class="dlbl">Streamers na guilda</span><b id="k-str"></b><small id="k-str-s"></small></div>
+<div class="panel kpi" id="k2"><span class="dlbl">Streamers na fila</span><b id="k-strf"></b><small>aguardando você</small></div>
+<div class="panel kpi" id="k3"><span class="dlbl">Estúdios verificados</span><b id="k-dev"></b><small id="k-dev-s"></small></div>
+<div class="panel kpi" id="k4"><span class="dlbl">Estúdios na fila</span><b id="k-devf"></b><small>aguardando você</small></div>
+</section>
+
+<section class="panel" style="margin-top:24px">
+<div class="tabs" role="tablist" aria-label="Seções">
+<button type="button" class="tab" role="tab" data-tab="str">Streamers <span class="n" id="n-str" hidden></span></button>
+<button type="button" class="tab" role="tab" data-tab="dev">Estúdios <span class="n" id="n-dev" hidden></span></button>
+<button type="button" class="tab" role="tab" data-tab="camp">Campanhas <span class="n" id="n-camp" hidden></span></button>
+<button type="button" class="tab" role="tab" data-tab="ent">Entregas <span class="n" id="n-ent" hidden></span></button>
+<button type="button" class="tab" role="tab" data-tab="fin">Financeiro</button>
+<button type="button" class="tab" role="tab" data-tab="precos">Preços</button>
+<button type="button" class="tab" role="tab" data-tab="emails">E-mails</button>
+<button type="button" class="tab" role="tab" data-tab="pesq">Pesquisa</button>
+</div>
+<div id="conteudo" role="tabpanel"></div>
+</section>
+</main>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<footer class="pe"><div class="wrap">Guilda · Salão do Mestre · só você vê esta página</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const url = (u) => { try { const x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : ''; } catch (e) { return ''; } };
+const data = (d) => d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '';
+const st = { aba: 'str', filtro: { str: 'pendente', dev: 'pendente', camp: 'aguardando_pagamento' }, busca: '', streamers: [], devs: [], camps: [], parts: [], precos: [], cfg: {} };
+
+/* rank sugerido pela faixa de viewers declarada */
+const SUGESTAO = { 'Até 10': 'F', '10 a 30': 'F', '30 a 75': 'D', '75 a 150': 'D', '150 a 400': 'C', 'Mais de 400': 'B' };
+const TIPO = { affiliate: 'Afiliado', partner: 'Parceiro' };
+const GENERICOS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com', 'proton.me', 'protonmail.com', 'bol.com.br', 'uol.com.br'];
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 2600); }
+
+/* ---------- dados ---------- */
+async function carregar() {
+  if (Guilda.DEMO) { st.streamers = DEMO_STR; st.devs = DEMO_DEV; st.camps = DEMO_CAMP; st.parts = DEMO_PART; st.pix = { s2: { tipo_chave: 'email', chave_pix: 'luna@email.com', nome_titular: 'Luna Souza' } }; st.precos = DEMO_PRECOS; st.cfg = DEMO_CFG; return; }
+  const [a, b, c, p, pr, cf, px] = await Promise.all([
+    Guilda.sb.from('guilda_streamers').select('*').order('criado_em', { ascending: false }),
+    Guilda.sb.from('guilda_devs').select('*').order('criado_em', { ascending: false }),
+    Guilda.sb.from('guilda_campanhas').select('*, guilda_devs(estudio, email)').order('criado_em', { ascending: false }),
+    Guilda.sb.from('guilda_participacoes').select('*, guilda_streamers(twitch_login, nome_exibicao, avatar_url, rank, email_aviso, contato), guilda_campanhas(jogo, valor_vaga, recompensa_brl, moeda, minutos)').order('criado_em', { ascending: false }),
+    Guilda.sb.from('guilda_precos').select('*').order('ordem'),
+    Guilda.sb.from('guilda_config').select('*').eq('id', 1).maybeSingle(),
+    Guilda.sb.from('guilda_streamer_pagamento').select('*')
+  ]);
+  [a, b, c, p, pr, cf, px].forEach((r) => { if (r.error) console.error(r.error); });
+  st.pix = {}; (px.data || []).forEach((x) => { st.pix[x.streamer_id] = x; });
+  st.streamers = a.data || [];
+  st.devs = b.data || [];
+  st.camps = c.data || [];
+  st.parts = p.data || [];
+  st.precos = pr.data || [];
+  st.cfg = cf.data || {};
+}
+
+const LISTAS = { guilda_streamers: 'streamers', guilda_devs: 'devs', guilda_campanhas: 'camps', guilda_participacoes: 'parts' };
+async function salvar(tabela, id, campos, msg) {
+  if (!Guilda.DEMO) {
+    const { error } = await Guilda.sb.from(tabela).update(campos).eq('id', id);
+    if (error) { console.error(error); toast('Não deu para salvar. Tente de novo.'); return false; }
+  }
+  const item = st[LISTAS[tabela]].find((x) => x.id === id);
+  if (item) Object.assign(item, campos);
+  render(); toast(msg); return true;
+}
+
+/* ---------- visual ---------- */
+function chipStatus(s, rank) {
+  if (s === 'aprovado') return `<span class="chip chip-gold">${rank ? 'Rank ' + esc(rank) : 'Aprovado'}</span>`;
+  if (s === 'recusado') return '<span class="chip chip-mute">Recusado</span>';
+  return '<span class="chip chip-okl">Em análise</span>';
+}
+function filtros(tipo, lista) {
+  const c = (s) => lista.filter((x) => (x.status || 'pendente') === s).length;
+  const f = st.filtro[tipo];
+  const op = [['pendente', 'Na fila', c('pendente')], ['aprovado', tipo === 'dev' ? 'Verificados' : 'Aprovados', c('aprovado')], ['recusado', 'Recusados', c('recusado')], ['todos', 'Todos', lista.length]];
+  return `<div class="barra">${op.map(([id, n, q]) => `<button type="button" class="pill${f === id ? ' on' : ''}" data-filtro="${tipo}:${id}">${n} · ${q}</button>`).join('')}
+    <input class="input" type="search" id="busca" placeholder="Buscar por nome" value="${esc(st.busca)}" aria-label="Buscar"></div>`;
+}
+function aplicarFiltro(tipo, lista, campos) {
+  const f = st.filtro[tipo], q = st.busca.trim().toLowerCase();
+  return lista.filter((x) => (f === 'todos' || (x.status || 'pendente') === f) && (!q || campos.some((c) => String(x[c] || '').toLowerCase().includes(q))));
+}
+
+function cardStreamer(s) {
+  const status = s.status || 'pendente';
+  const sug = SUGESTAO[s.media_viewers] || 'F';
+  const login = s.twitch_login || '';
+  const foto = url(s.avatar_url) ? `<img src="${esc(url(s.avatar_url))}" alt="">` : esc((s.nome_exibicao || login || '?').slice(0, 2).toUpperCase());
+  const acoes = status === 'pendente'
+    ? `<span class="dlbl" style="margin-right:4px">Aprovar como</span>${['F', 'D', 'C', 'B', 'A'].map((r) => `<button type="button" class="rkb${r === sug ? ' sug' : ''}" data-aprovar="${esc(s.id)}" data-rank="${r}" aria-label="Aprovar como rank ${r}">${r}</button>`).join('')}<button type="button" class="ghost" data-recusar="str:${esc(s.id)}">Recusar</button>`
+    : status === 'aprovado'
+      ? `<span class="dlbl" style="margin-right:4px">Mudar rank</span>${['F', 'D', 'C', 'B', 'A', 'S'].map((r) => `<button type="button" class="rkb${r === s.rank ? ' sug' : ''}" data-aprovar="${esc(s.id)}" data-rank="${r}" aria-label="Rank ${r}">${r}</button>`).join('')}<button type="button" class="ghost" data-reabrir="str:${esc(s.id)}">Voltar para a fila</button>`
+      : `<button type="button" class="ghost" data-reabrir="str:${esc(s.id)}">Voltar para a fila</button>`;
+  return `<article class="item${status === 'pendente' ? ' pend' : ''}">
+    <div class="topo">
+      <div class="foto">${foto}</div>
+      <div class="quem"><b>${esc(s.nome_exibicao || login)}</b> ${chipStatus(status, s.rank)}
+        <div class="sub">${login ? `<a href="https://twitch.tv/${encodeURIComponent(login)}" target="_blank" rel="noopener">twitch.tv/${esc(login)}</a>` : ''}${s.twitch_tipo ? ' · ' + esc(TIPO[s.twitch_tipo] || s.twitch_tipo) : ' · sem afiliação'} · ${data(s.criado_em)}</div></div>
+    </div>
+    <div class="fatos">
+      <span>Viewers: <b>${esc(s.media_viewers)}</b></span>
+      <span>Lives/sem: <b>${esc(s.frequencia)}</b></span>
+      <span>Gêneros: <b>${esc((s.generos || []).join(', ') || '—')}</b></span>
+      <span>Nota: <b>${s.nota_ideia ? esc(s.nota_ideia) + '/5' : '—'}</b></span>
+      <span>Preço justo: <b>${esc(s.preco_justo || '—')}</b></span>
+    </div>
+    <div class="acoes">${acoes}</div>
+    <details><summary>Detalhes e anotações</summary>
+      <div class="det">
+        <div><span>Contato</span>${esc(s.contato || '—')}</div>
+        <div><span>E-mail para avisos</span>${esc(s.email_aviso || '—')}</div>
+        <div><span>E-mail da Twitch</span>${esc(s.email || '—')}</div>
+        <div><span>Horários</span>${esc((s.horarios || []).join(', ') || '—')}</div>
+        <div><span>Já fez patrocinada</span>${s.ja_fez_patrocinio === true ? 'Sim' : s.ja_fez_patrocinio === false ? 'Não' : '—'}</div>
+        <div><span>Aceitou as regras</span>${s.aceite_regras ? 'Sim' : 'Não'}</div>
+        <div class="full"><span>Comentário</span><p>${esc(s.comentario || '—')}</p></div>
+        <div class="full"><span>Suas anotações (o streamer não vê)</span>
+          <div class="nota"><textarea class="input" id="nota-str-${esc(s.id)}">${esc(s.notas_admin || '')}</textarea><button type="button" class="ghost" data-nota="str:${esc(s.id)}">Salvar</button></div></div>
+      </div>
+    </details>
+  </article>`;
+}
+
+function dominio(url) { try { return new URL(url).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) { return ''; } }
+function cardDev(d) {
+  const status = d.status || 'pendente';
+  const dMail = (d.email || '').split('@')[1] || '';
+  const dSite = dominio(d.site);
+  const generico = GENERICOS.includes(dMail.toLowerCase());
+  const bate = dSite && dMail && (dMail.toLowerCase() === dSite || dMail.toLowerCase().endsWith('.' + dSite));
+  const checks = [
+    bate ? ['E-mail é do domínio do site', true] : generico ? ['E-mail genérico (' + dMail + ')', false] : ['E-mail não bate com o site', false],
+    [d.empresa_doc ? 'Informou registro da empresa' : 'Sem registro da empresa', !!d.empresa_doc],
+    [d.site ? 'Tem site' : 'Sem site', !!d.site]
+  ].map(([t, ok]) => `<span class="chip ${ok ? 'chip-okl' : 'chip-badl'}">${ok ? '✓' : '!'} ${esc(t)}</span>`).join('');
+  const acoes = status === 'pendente'
+    ? `<button type="button" class="btn btn-s" data-verificar="${esc(d.id)}">Verificar estúdio</button><button type="button" class="ghost" data-recusar="dev:${esc(d.id)}">Recusar</button>`
+    : `<button type="button" class="ghost" data-reabrir="dev:${esc(d.id)}">Voltar para a fila</button>`;
+  return `<article class="item${status === 'pendente' ? ' pend' : ''}">
+    <div class="topo">
+      <div class="foto" style="border-radius:10px">${esc((d.estudio || '?').slice(0, 2).toUpperCase())}</div>
+      <div class="quem"><b>${esc(d.estudio)}</b> ${chipStatus(status)}
+        <div class="sub">${esc(d.nome)}${d.cargo ? ' · ' + esc(d.cargo) : ''} · ${esc(d.pais || '')} · ${esc(d.email || '')} · ${data(d.criado_em)}</div></div>
+    </div>
+    <div class="fatos">
+      <span>Steam: <b>${url(d.steam_url) ? `<a href="${esc(url(d.steam_url))}" target="_blank" rel="noopener">abrir página</a>` : '—'}</b></span>
+      <span>Site: <b>${url(d.site) ? `<a href="${esc(url(d.site))}" target="_blank" rel="noopener">${esc(dSite || d.site)}</a>` : '—'}</b></span>
+      <span>Equipe: <b>${esc(d.equipe || '—')}</b></span>
+      <span>Orçamento: <b>${esc(d.orcamento || '—')}</b></span>
+      <span>Idioma: <b>${esc((d.idioma || '').toUpperCase())}</b></span>
+    </div>
+    <div class="checks">${checks}</div>
+    <div class="acoes">${acoes}</div>
+    <details><summary>Detalhes e anotações</summary>
+      <div class="det">
+        <div><span>Contato</span>${esc(d.contato || '—')}</div>
+        <div><span>Registro da empresa</span>${esc(d.empresa_doc || '—')}</div>
+        <div><span>Outros links</span>${esc(d.outros_links || '—')}</div>
+        <div><span>Como conheceu</span>${esc(d.como_conheceu || '—')}</div>
+        <div class="full"><span>Sobre o jogo</span><p>${esc(d.jogos || '—')}</p></div>
+        <div class="full"><span>Como verificar</span><p>1) Abra a página da Steam: o "Desenvolvedor" ou "Distribuidora" é esse estúdio?  2) O site do estúdio cita o jogo?  3) O e-mail é do domínio do estúdio? Se for genérico, peça confirmação pelo contato.</p></div>
+        <div class="full"><span>Suas anotações (o dev não vê)</span>
+          <div class="nota"><textarea class="input" id="nota-dev-${esc(d.id)}">${esc(d.notas_admin || '')}</textarea><button type="button" class="ghost" data-nota="dev:${esc(d.id)}">Salvar</button></div></div>
+      </div>
+    </details>
+  </article>`;
+}
+
+function barras(titulo, contagem, ordem) {
+  const total = Object.values(contagem).reduce((a, b) => a + b, 0) || 1;
+  const max = Math.max(1, ...Object.values(contagem));
+  return `<div class="panel"><h3>${titulo}</h3>${ordem.map((k) => {
+    const v = contagem[k] || 0;
+    return `<div class="hbar"><span>${esc(k)}</span><span class="t"><i style="width:${(v / max) * 100}%"></i></span><em class="num">${v}</em></div>`;
+  }).join('')}</div>`;
+}
+
+function abaPesquisa() {
+  const r = st.streamers;
+  const notas = r.map((x) => x.nota_ideia).filter(Boolean);
+  const media = notas.length ? (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1).replace('.', ',') : '—';
+  const conta = (campo, ordem) => { const c = {}; ordem.forEach((o) => { c[o] = 0; }); r.forEach((x) => { const v = x[campo]; if (v && c[v] !== undefined) c[v]++; }); return c; };
+  const PRECOS = ['Até R$ 50', 'R$ 50 a R$ 100', 'R$ 100 a R$ 200', 'R$ 200 a R$ 400', 'Mais de R$ 400', 'Faria de graça se o jogo for bom'];
+  const VIEWERS = ['Até 10', '10 a 30', '30 a 75', '75 a 150', '150 a 400', 'Mais de 400'];
+  const notaC = {}; ['5', '4', '3', '2', '1'].forEach((n) => { notaC[n + ' de 5'] = r.filter((x) => String(x.nota_ideia) === n).length; });
+  const genC = {}; r.forEach((x) => (x.generos || []).forEach((g) => { genC[g] = (genC[g] || 0) + 1; }));
+  const genOrd = Object.keys(genC).sort((a, b) => genC[b] - genC[a]).slice(0, 8);
+  const coments = r.filter((x) => x.comentario).map((x) => `<div class="coment"><b>${esc(x.nome_exibicao || x.twitch_login)}</b> · nota ${esc(x.nota_ideia || '—')} · ${esc(x.preco_justo || '')}<br>${esc(x.comentario)}</div>`).join('') || '<div class="coment">Nenhum comentário ainda.</div>';
+  return `<div class="pesq">
+    <div class="panel"><h3>O quanto usariam a Guilda</h3><div style="font-family:var(--display);font-size:40px;color:var(--gold)" class="num">${media}<span style="font-size:18px;color:var(--muted)"> / 5 · ${notas.length} respostas</span></div>
+      ${Object.keys(notaC).map((k) => `<div class="hbar"><span>${k}</span><span class="t"><i style="width:${(notaC[k] / Math.max(1, ...Object.values(notaC))) * 100}%"></i></span><em class="num">${notaC[k]}</em></div>`).join('')}</div>
+    ${barras('Preço justo por 1h de live', conta('preco_justo', PRECOS), PRECOS)}
+    ${barras('Média de viewers declarada', conta('media_viewers', VIEWERS), VIEWERS)}
+    ${barras('Gêneros mais citados', genC, genOrd)}
+    <div class="panel" style="grid-column:1/-1"><h3>Comentários e sugestões</h3>${coments}</div>
+  </div>`;
+}
+
+
+/* ---------- campanhas ---------- */
+const reaisOu = (n, m) => { const v = Number(n) || 0; const o = { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }; return m === 'USD' ? 'US$ ' + v.toLocaleString('en-US', o) : 'R$ ' + v.toLocaleString('pt-BR', o); };
+const OCUPA = ['aceita', 'entregue', 'validada', 'paga'];
+const NOME_ST = { aguardando_pagamento: 'Aguardando pagamento', publicada: 'No mural', encerrada: 'Encerrada', cancelada: 'Cancelada' };
+function venceEm(c) {
+  const fim = new Date(c.criado_em).getTime() + (Number(st.cfg.prazo_pagamento_dias) || 3) * 86400000;
+  const h = Math.round((fim - Date.now()) / 3600000);
+  if (h <= 0) return 'Prazo vencido · será cancelada na próxima rodada (de hora em hora)';
+  return 'Cancela sozinha em ' + (h >= 48 ? Math.round(h / 24) + ' dias' : h + 'h') + ' se o pagamento não for confirmado';
+}
+function partsDe(cid) { return st.parts.filter((p) => p.campanha_id === cid); }
+function abaCampanhas() {
+  const f = st.filtro.camp;
+  const conta = (s) => st.camps.filter((c) => c.status === s).length;
+  const op = [['aguardando_pagamento', 'Aguardando pagamento'], ['publicada', 'No mural'], ['encerrada', 'Encerradas'], ['cancelada', 'Canceladas'], ['todos', 'Todas']];
+  const barra = `<div class="barra">${op.map(([id, n]) => `<button type="button" class="pill${f === id ? ' on' : ''}" data-filtro="camp:${id}">${n} · ${id === 'todos' ? st.camps.length : conta(id)}</button>`).join('')}</div>`;
+  const lista = st.camps.filter((c) => f === 'todos' || c.status === f);
+  const cards = lista.map((c) => {
+    const ps = partsDe(c.id);
+    const ocup = ps.filter((p) => OCUPA.includes(p.status)).length;
+    const val = ps.filter((p) => p.status === 'validada' || p.status === 'paga').length;
+    const estudio = (c.guilda_devs && c.guilda_devs.estudio) || '—';
+    let acoes = '';
+    const vence = c.status === 'aguardando_pagamento' && c.criado_em ? venceEm(c) : '';
+    if (c.status === 'aguardando_pagamento') acoes = `<button type="button" class="btn btn-s" data-pago="${esc(c.id)}">${st.confirmar === 'pago:' + c.id ? 'Confirmar: o dinheiro caiu?' : 'Pagamento confirmado → publicar'}</button><button type="button" class="ghost" data-camp-st="cancelada:${esc(c.id)}">Cancelar</button>`;
+    else if (c.status === 'publicada') acoes = `<button type="button" class="ghost" data-camp-st="encerrada:${esc(c.id)}">${st.confirmar === 'encerrada:' + c.id ? 'Clique de novo para encerrar' : 'Encerrar campanha'}</button>`;
+    return `<article class="item${c.status === 'aguardando_pagamento' ? ' pend' : ''}">
+      <div class="topo"><div class="foto" style="border-radius:10px">${esc((c.jogo || '?').slice(0, 2).toUpperCase())}</div>
+        <div class="quem"><b>${esc(c.jogo)}</b> <span class="chip ${c.status === 'publicada' ? 'chip-ok' : c.status === 'aguardando_pagamento' ? 'chip-gold' : 'chip-mute'}">${NOME_ST[c.status]}</span>
+        <div class="sub">${esc(estudio)} · ${esc((c.guilda_devs && c.guilda_devs.email) || '')} · ${data(c.criado_em)}</div></div></div>
+      <div class="fatos num">
+        <span>Evento: <b>${esc(c.evento)}</b></span><span>Rank: <b>${esc(c.rank_min)}+</b></span><span>Vagas: <b>${ocup}/${c.vagas}</b></span><span>Validadas: <b>${val}</b></span>
+        <span>Duração: <b>${c.minutos} min</b></span><span>Modo: <b>${c.modo === 'manual' ? 'Manual' : 'Automático'}</b></span>
+      </div>
+      ${vence ? `<div class="fatos"><span style="color:var(--gold)">${vence}</span></div>` : ''}
+      ${c.status === 'cancelada' && c.cancelada_motivo ? `<div class="fatos"><span>Motivo: <b>${{ prazo: 'sem pagamento no prazo (automático)', dev: 'cancelada pelo dev', mestre: 'cancelada por você' }[c.cancelada_motivo] || ''}</b></span></div>` : ''}
+      ${c.pago_via ? `<div class="fatos"><span class="chip ${c.pago_via === 'stripe' ? 'chip-ok' : 'chip-okl'}">${c.pago_via === 'stripe' ? 'Pago pela Stripe' : 'Pago (confirmado por você)'}${c.valor_recebido ? ' · ' + reaisOu(c.valor_recebido, c.moeda) : ''}</span></div>` : ''}
+      <div class="fatos num"><span>Dev paga: <b>${reaisOu(c.total, c.moeda)}</b></span><span>Streamer recebe: <b>${reaisOu(c.recompensa_brl, 'BRL')}/vaga</b></span><span>Sua taxa: <b style="color:var(--gold)">${reaisOu(c.taxa, c.moeda)} (${num(c.taxa_pct)}%)</b></span></div>
+      ${acoes ? `<div class="acoes">${acoes}</div>` : ''}
+      <details><summary>Pedido do dev e anotações</summary><div class="det">
+        <div class="full"><span>Pedido</span><p>${esc(c.pedido || '—')}</p></div>
+        <div><span>Steam</span>${url(c.steam_url) ? `<a href="${esc(url(c.steam_url))}" target="_blank" rel="noopener">abrir página</a>` : '—'}</div>
+        <div><span>Datas</span>${esc(c.data_inicio || '—')} → ${esc(c.data_fim || '—')}</div>
+        <div class="full"><span>Suas anotações</span><div class="nota"><textarea class="input" id="nota-camp-${esc(c.id)}">${esc(c.notas_admin || '')}</textarea><button type="button" class="ghost" data-nota="camp:${esc(c.id)}">Salvar</button></div></div>
+      </div></details>
+    </article>`;
+  }).join('');
+  return barra + `<div class="lista">${cards || '<div class="vazio">Nada por aqui.</div>'}</div>`;
+}
+const num = (n) => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+
+/* ---------- entregas ---------- */
+const TIPO_PIX = { cpf: 'CPF', cnpj: 'CNPJ', email: 'E-mail', telefone: 'Celular', aleatoria: 'Aleatória' };
+function pixDe(p) { const x = (st.pix || {})[p.streamer_id]; return x ? `Pix (${TIPO_PIX[x.tipo_chave] || ''}): <b style="color:var(--text)">${esc(x.chave_pix)}</b> · ${esc(x.nome_titular)}` : '<b style="color:var(--bad-text)">Streamer ainda sem chave Pix</b>'; }
+function autoBloco(p, c) {
+  const botao = (txt) => `<button type="button" class="ghost" data-twitch="${esc(p.id)}" style="min-height:36px;padding:0 12px;font-size:14px">${txt}</button>`;
+  if (!p.auto_verificado_em) return `<div class="checks" style="align-items:center"><span class="chip chip-mute">Conferência da Twitch: na fila (até 10 min)</span>${botao('Verificar agora')}</div>`;
+  const chip = (ok, sim, nao, neutro) => ok === true ? `<span class="chip chip-okl">✓ ${sim}</span>` : ok === false ? `<span class="chip chip-badl">✗ ${nao}</span>` : `<span class="chip chip-mute">? ${neutro}</span>`;
+  const durOk = p.vod_duracao_min != null ? p.vod_duracao_min >= (c.minutos || 0) : null;
+  return `<div style="display:flex;flex-direction:column;gap:8px">
+    <div class="checks" style="align-items:center"><span class="dlbl" style="margin-right:4px">Twitch</span>
+      ${chip(p.vod_canal_ok, 'Gravação do canal certo', 'Gravação de outro canal', 'Canal não conferido')}
+      ${chip(durOk, `${p.vod_duracao_min} min (mín. ${c.minutos || '?'})`, `${p.vod_duracao_min} min (mín. ${c.minutos || '?'})`, 'Duração não conferida')}
+      ${chip(p.auto_jogo_ok, 'Jogo certo na categoria', `Categoria: ${esc(p.auto_jogo_visto || '?')}`, 'Categoria não vista ao vivo')}
+      ${chip(p.auto_titulo_ok, 'Jogo no título', 'Jogo fora do título', 'Título não conferido')}
+      ${p.auto_amostras ? `<span class="chip chip-mute">${p.auto_amostras} anotações ao vivo · média ${num(p.auto_media)} · pico ${num(p.auto_pico)}</span>` : ''}
+      ${botao('Verificar de novo')}
+    </div>
+    ${p.auto_obs ? `<div style="font-size:14px;color:var(--soft)">${esc(p.auto_obs)}</div>` : ''}
+  </div>`;
+}
+async function verificarTwitch(id, botao) {
+  if (Guilda.DEMO) { const p = st.parts.find((x) => x.id === id); Object.assign(p, { auto_verificado_em: new Date().toISOString(), vod_canal_ok: true, vod_duracao_min: 74, auto_jogo_ok: true, auto_titulo_ok: false, auto_amostras: 14, auto_media: 58, auto_pico: 91, auto_clipes: 2, auto_jogo_visto: 'Hollow Forge', auto_obs: 'O nome do jogo não apareceu no título da live.' }); render(); toast('Conferido (demonstração)'); return; }
+  botao.disabled = true; botao.textContent = 'Consultando a Twitch…';
+  const { data, error } = await Guilda.sb.functions.invoke('guilda-twitch', { body: { acao: 'verificar', participacao_id: id } });
+  if (error) { let m = 'Não deu para consultar a Twitch.'; try { const j = await error.context.json(); if (j && j.erro) m = j.erro; } catch (x) {} toast(m); botao.disabled = false; botao.textContent = 'Verificar agora'; return; }
+  await carregar(); render(); toast('Conferido pela Twitch');
+}
+function abaEntregas() {
+  const alvo = st.parts.filter((p) => p.status === 'entregue' || p.status === 'validada');
+  if (!alvo.length) return '<div class="vazio">Nenhuma entrega para conferir. Elas aparecem aqui quando os streamers enviarem o link da live.</div>';
+  return `<div class="lista">${alvo.map((p) => {
+    const s = p.guilda_streamers || {}, c = p.guilda_campanhas || {};
+    const vod = url(p.link_vod);
+    const corpo = p.status === 'entregue'
+      ? autoBloco(p, c) + `<div class="det" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+          <div><span>Duração (min)</span><input class="input" type="number" min="0" id="dur-${esc(p.id)}" value="${esc(p.duracao_min || p.vod_duracao_min || '')}" placeholder="${esc(c.minutos || 60)}"></div>
+          <div><span>Média de viewers</span><input class="input" type="number" min="0" id="med-${esc(p.id)}" value="${esc(p.media_viewers || p.auto_media || '')}"></div>
+          <div><span>Pico de viewers</span><input class="input" type="number" min="0" id="pic-${esc(p.id)}" value="${esc(p.pico_viewers || p.auto_pico || '')}"></div>
+          <div><span>Clipes</span><input class="input" type="number" min="0" id="cli-${esc(p.id)}" value="${esc(p.clipes != null ? p.clipes : (p.auto_clipes != null ? p.auto_clipes : ''))}"></div>
+        </div>
+        <div class="acoes"><button type="button" class="btn btn-s" data-validar="${esc(p.id)}">Validar entrega</button><button type="button" class="ghost" data-part-st="aceita:${esc(p.id)}">Pedir correção</button><button type="button" class="ghost" data-part-st="falhou:${esc(p.id)}">Não entregou</button></div>`
+      : `<div class="fatos num"><span>Duração: <b>${num(p.duracao_min)} min</b></span><span>Média: <b>${num(p.media_viewers)}</b></span><span>Pico: <b>${num(p.pico_viewers)}</b></span><span>Clipes: <b>${num(p.clipes)}</b></span></div>
+        <div class="acoes"><button type="button" class="btn btn-s" data-pix="${esc(p.id)}">Pix de ${reaisOu(c.recompensa_brl, 'BRL')} enviado</button><span style="font-size:14px;color:var(--soft)">${pixDe(p)}</span><span style="font-size:14px;color:var(--muted)">Contato: ${esc(s.contato || '—')}</span></div>`;
+    return `<article class="item${p.status === 'entregue' ? ' pend' : ''}">
+      <div class="topo"><div class="foto">${url(s.avatar_url) ? `<img src="${esc(url(s.avatar_url))}" alt="">` : esc((s.nome_exibicao || '?').slice(0, 2).toUpperCase())}</div>
+      <div class="quem"><b>${esc(s.nome_exibicao || s.twitch_login)}</b> <span class="chip ${p.status === 'entregue' ? 'chip-gold' : 'chip-ok'}">${p.status === 'entregue' ? 'Conferir live' : 'Validada · falta o Pix'}</span>
+      <div class="sub">${esc(c.jogo || '')} · live mínima de ${esc(c.minutos || '')} min · enviada ${data(p.entregue_em)}</div></div>
+      ${vod ? `<a class="ghost" href="${esc(vod)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir gravação</a>` : ''}</div>
+      ${corpo}
+    </article>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- financeiro ---------- */
+function abaFinanceiro() {
+  const pagas = st.camps.filter((c) => c.status === 'publicada' || c.status === 'encerrada');
+  if (!pagas.length) return '<div class="vazio">Nenhuma campanha paga ainda. Quando você confirmar o primeiro pagamento, os números aparecem aqui.</div>';
+  const tot = {};
+  const linhas = pagas.map((c) => {
+    const ps = partsDe(c.id);
+    const nPagas = ps.filter((p) => p.status === 'paga').length;
+    const repassadoBRL = nPagas * Number(c.recompensa_brl);
+    const custodia = Number(c.subtotal) - nPagas * Number(c.valor_vaga);
+    const m = c.moeda; tot[m] = tot[m] || { dev: 0, cust: 0, taxa: 0 };
+    tot[m].dev += Number(c.total); tot[m].cust += custodia; tot[m].taxa += Number(c.taxa);
+    tot.rep = (tot.rep || 0) + repassadoBRL;
+    return `<tr><td><b>${esc(c.jogo)}</b><br><span style="font-size:13px;color:var(--muted)">${esc((c.guilda_devs && c.guilda_devs.estudio) || '')}</span></td><td>${NOME_ST[c.status]}</td><td>${reaisOu(c.total, m)}</td><td>${reaisOu(custodia, m)}</td><td>${reaisOu(repassadoBRL, 'BRL')} <span style="color:var(--muted)">(${nPagas})</span></td><td><b style="color:var(--gold)">${reaisOu(c.taxa, m)}</b></td></tr>`;
+  }).join('');
+  const moedas = Object.keys(tot).filter((k) => k !== 'rep');
+  const resumo = moedas.map((m) => `<div class="panel kpi"><span class="dlbl">Em ${m === 'USD' ? 'dólar' : 'real'}</span><b>${reaisOu(tot[m].taxa, m)}</b><small>sua receita · ${reaisOu(tot[m].cust, m)} em custódia</small></div>`).join('');
+  return `<div class="kpis num" style="padding:18px 18px 0">${resumo}<div class="panel kpi"><span class="dlbl">Pix enviados</span><b>${reaisOu(tot.rep || 0, 'BRL')}</b><small>repassado aos streamers</small></div></div>
+  <div class="scroll-x" style="padding:0 18px 18px"><table class="t num"><thead><tr><th>Campanha</th><th>Status</th><th>Dev pagou</th><th>Em custódia</th><th>Repassado</th><th>Sua taxa</th></tr></thead><tbody>${linhas}</tbody></table></div>
+  <p class="rodape" style="padding:0 18px 18px">Custódia = o que o dev pagou para os streamers e ainda não foi repassado (na moeda do dev). Os Pix aos streamers são sempre em reais.</p>`;
+}
+
+/* ---------- preços ---------- */
+function abaPrecos() {
+  const c = st.cfg || {};
+  const campo = (id, rot, v, passo) => `<div class="field"><label class="dlbl" for="${id}">${rot}</label><input class="input" type="number" step="${passo || 1}" min="0" id="${id}" value="${esc(v)}"></div>`;
+  return `<div style="padding:18px;display:flex;flex-direction:column;gap:20px">
+    <p style="margin:0;color:var(--soft)">Os preços valem para as <b>novas</b> campanhas. Campanhas já criadas mantêm o preço do dia em que foram criadas. O valor em R$ é o que o dev brasileiro paga <b>e</b> o que o streamer recebe por vaga (live de 60 min).</p>
+    <div class="scroll-x"><table class="t" style="min-width:520px"><thead><tr><th>Rank</th><th>R$ por vaga</th><th>US$ por vaga</th></tr></thead><tbody>
+      ${(st.precos || []).map((p) => `<tr><td><span class="shield r-${esc(p.rank)}">${esc(p.rank)}</span></td><td><input class="input" type="number" min="0" step="1" id="brl-${esc(p.rank)}" value="${esc(p.brl)}" style="max-width:160px"></td><td><input class="input" type="number" min="0" step="1" id="usd-${esc(p.rank)}" value="${esc(p.usd)}" style="max-width:160px"></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="det" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      ${campo('cf-taxa_auto', 'Taxa modo automático (%)', c.taxa_auto)}${campo('cf-taxa_manual', 'Taxa modo manual (%)', c.taxa_manual)}${campo('cf-usd_brl', 'Cotação US$ → R$ (relatórios)', c.usd_brl, 0.01)}
+      ${campo('cf-mult_90', 'Multiplicador live de 90 min', c.mult_90, 0.1)}${campo('cf-mult_120', 'Multiplicador live de 120 min', c.mult_120, 0.1)}
+      <div class="field"><label class="dlbl" for="cf-contato">Seu contato (aparece para o dev pagar)</label><input class="input" id="cf-contato" value="${esc(c.contato || '')}"></div>
+      ${campo('cf-prazo', 'Prazo para o dev pagar (dias)', c.prazo_pagamento_dias || 3)}
+      <div class="field"><label class="dlbl" for="cf-stripe">Pagamento com cartão (Stripe)</label><select class="input" id="cf-stripe"><option value="0"${!c.stripe_ativo ? ' selected' : ''}>Desligado</option><option value="1"${c.stripe_ativo ? ' selected' : ''}>Ligado</option></select></div>
+    </div>
+    <div><button type="button" class="btn" id="salvar-precos">Salvar preços e taxas</button></div>
+  </div>`;
+}
+async function salvarPrecos() {
+  const n = (id) => Number($(id).value);
+  const cfg = { taxa_auto: n('cf-taxa_auto'), taxa_manual: n('cf-taxa_manual'), usd_brl: n('cf-usd_brl'), mult_90: n('cf-mult_90'), mult_120: n('cf-mult_120'), contato: $('cf-contato').value.trim() || null };
+  if ($('cf-prazo')) cfg.prazo_pagamento_dias = Math.max(1, Math.round(n('cf-prazo')));
+  if ($('cf-stripe')) cfg.stripe_ativo = $('cf-stripe').value === '1';
+  const precos = st.precos.map((p) => ({ rank: p.rank, brl: n('brl-' + p.rank), usd: n('usd-' + p.rank) }));
+  if (Object.values(cfg).some((v) => typeof v === 'number' && !(v >= 0)) || precos.some((p) => !(p.brl > 0 && p.usd > 0))) { toast('Confira os números: todos precisam ser maiores que zero.'); return; }
+  if (!Guilda.DEMO) {
+    const r1 = await Guilda.sb.from('guilda_config').update(cfg).eq('id', 1);
+    const rs = await Promise.all(precos.map((p) => Guilda.sb.from('guilda_precos').update({ brl: p.brl, usd: p.usd }).eq('rank', p.rank)));
+    if (r1.error || rs.some((r) => r.error)) { console.error(r1.error, rs); toast('Não deu para salvar. Tente de novo.'); return; }
+  }
+  Object.assign(st.cfg, cfg); precos.forEach((p) => Object.assign(st.precos.find((x) => x.rank === p.rank), p));
+  render(); toast('Preços salvos');
+}
+
+/* ---------- e-mails ---------- */
+async function carregarEmails() {
+  if (Guilda.DEMO) { st.emails = DEMO_EMAILS; return; }
+  const { data, error } = await Guilda.sb.rpc('guilda_emails_recentes');
+  if (error) console.error(error);
+  st.emails = data || [];
+}
+const TIPO_EMAIL = { admin_novo_streamer: 'Você · novo streamer', admin_novo_dev: 'Você · novo estúdio', admin_nova_campanha: 'Você · nova campanha', admin_entrega: 'Você · entrega', streamer_recebido: 'Streamer · candidatura', streamer_aprovado: 'Streamer · aprovado', streamer_recusado: 'Streamer · recusado', streamer_rank: 'Streamer · subiu de rank', streamers_nova_quest: 'Streamers · quest nova', streamer_aprovado_quest: 'Streamer · aprovado na quest', streamer_recusado_quest: 'Streamer · não selecionado', streamer_correcao: 'Streamer · correção', streamer_validada: 'Streamer · validada', streamer_pix: 'Streamer · Pix', streamer_falhou: 'Streamer · não entregou', dev_recebido: 'Dev · cadastro', dev_aprovado: 'Dev · verificado', dev_recusado: 'Dev · recusado', dev_pagamento: 'Dev · pagamento', dev_publicada: 'Dev · quest no ar', dev_encerrada: 'Dev · encerrada', dev_candidato: 'Dev · candidato', dev_vaga: 'Dev · vaga preenchida', dev_validada: 'Dev · live validada', teste: 'Teste' };
+function abaEmails() {
+  const c = st.cfg || {};
+  const linhas = (st.emails || []).map((e) => {
+    let chip;
+    if (e.erro) chip = `<span class="chip chip-badl" title="${esc(e.erro)}">Não enviado</span>`;
+    else if (e.http_status >= 200 && e.http_status < 300) chip = '<span class="chip chip-okl">Enviado</span>';
+    else if (e.http_status) chip = `<span class="chip chip-badl" title="${esc(e.resposta || '')}">Erro ${esc(e.http_status)}</span>`;
+    else chip = '<span class="chip chip-mute">Na fila</span>';
+    const det = e.erro || (e.http_status && (e.http_status < 200 || e.http_status >= 300) ? e.resposta : '');
+    return `<tr><td>${new Date(e.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td>${esc(TIPO_EMAIL[e.tipo] || e.tipo)}</td><td>${esc(e.para)}</td><td>${esc(e.assunto)}</td><td>${chip}${det ? `<div style="font-size:12px;color:var(--muted);max-width:260px;white-space:normal">${esc(det)}</div>` : ''}</td></tr>`;
+  }).join('');
+  return `<div style="padding:18px;display:flex;flex-direction:column;gap:18px">
+    <p style="margin:0;color:var(--soft)">Os e-mails saem sozinhos a cada acontecimento (cadastro, aprovação, campanha nova, pagamento confirmado, entrega, Pix). Plano grátis do Resend: <b>100 por dia</b> e 3.000 por mês.</p>
+    <div class="det" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <div class="field"><label class="dlbl" for="em-admin">Seu e-mail (avisos para você)</label><input class="input" id="em-admin" type="email" value="${esc(c.admin_email || '')}"></div>
+      <div class="field"><label class="dlbl" for="em-from">Remetente (domínio verificado no Resend)</label><input class="input" id="em-from" value="${esc(c.email_from || '')}" placeholder="Guilda <guilda@japax01.com.br>"></div>
+      <div class="field"><label class="dlbl" for="em-site">Endereço do site</label><input class="input" id="em-site" type="url" value="${esc(c.site_url || '')}" placeholder="https://guilda.japax01.com.br"></div>
+      <div class="field"><label class="dlbl" for="em-ativo">E-mails automáticos</label><select class="input" id="em-ativo"><option value="1"${c.emails_ativos !== false ? ' selected' : ''}>Ligados</option><option value="0"${c.emails_ativos === false ? ' selected' : ''}>Desligados</option></select></div>
+      <div class="field full"><label class="dlbl" for="em-pt">Como pagar · para devs em português</label><textarea class="input" id="em-pt" placeholder="Pix: sua-chave@email.com (Nome Completo)&#10;Envie o comprovante respondendo este e-mail.">${esc(c.instrucoes_pagamento_pt || '')}</textarea></div>
+      <div class="field full"><label class="dlbl" for="em-en">How to pay · for devs in English</label><textarea class="input" id="em-en" placeholder="PayPal: paypal.me/yourname&#10;Reply to this e-mail with the receipt.">${esc(c.instrucoes_pagamento_en || '')}</textarea></div>
+    </div>
+    <div class="acoes"><button type="button" class="btn" id="salvar-emails">Salvar configurações</button><button type="button" class="ghost" id="teste-email">Enviar e-mail de teste para mim</button><button type="button" class="ghost" id="atualizar-emails">Atualizar histórico</button></div>
+    <h3 style="font-size:18px;margin-top:6px">Últimos e-mails</h3>
+    ${linhas ? `<div class="scroll-x"><table class="t"><thead><tr><th>Quando</th><th>Tipo</th><th>Para</th><th>Assunto</th><th>Status</th></tr></thead><tbody>${linhas}</tbody></table></div>` : '<div class="vazio">Nenhum e-mail enviado ainda.</div>'}
+  </div>`;
+}
+async function salvarEmails() {
+  const cfg = { admin_email: $('em-admin').value.trim() || null, email_from: $('em-from').value.trim() || null, site_url: $('em-site').value.trim().replace(/\/+$/, '') || null, emails_ativos: $('em-ativo').value === '1', instrucoes_pagamento_pt: $('em-pt').value.trim() || null, instrucoes_pagamento_en: $('em-en').value.trim() || null };
+  if (!Guilda.DEMO) {
+    const { error } = await Guilda.sb.from('guilda_config').update(cfg).eq('id', 1);
+    if (error) { console.error(error); toast('Não deu para salvar. Rodou o supabase-emails.sql?'); return; }
+  }
+  Object.assign(st.cfg, cfg); render(); toast('Configurações salvas');
+}
+async function testeEmail() {
+  if (Guilda.DEMO) { toast('No modo demonstração nada é enviado'); return; }
+  const { data, error } = await Guilda.sb.rpc('guilda_email_teste');
+  if (error) { toast(error.message); return; }
+  toast('Teste enviado para ' + data);
+  setTimeout(async () => { await carregarEmails(); render(); }, 2500);
+}
+
+function render() {
+  const S = st.streamers, D = st.devs;
+  const cnt = (l, s) => l.filter((x) => (x.status || 'pendente') === s).length;
+  $('k-str').textContent = cnt(S, 'aprovado'); $('k-str-s').textContent = S.length + ' cadastros no total';
+  $('k-strf').textContent = cnt(S, 'pendente');
+  $('k-dev').textContent = cnt(D, 'aprovado'); $('k-dev-s').textContent = D.length + ' cadastros no total';
+  $('k-devf').textContent = cnt(D, 'pendente');
+  $('k2').classList.toggle('alerta', cnt(S, 'pendente') > 0);
+  $('k4').classList.toggle('alerta', cnt(D, 'pendente') > 0);
+  const ns = cnt(S, 'pendente'), nd = cnt(D, 'pendente');
+  $('n-str').textContent = ns; $('n-str').hidden = !ns;
+  $('n-dev').textContent = nd; $('n-dev').hidden = !nd;
+  const nc = st.camps.filter((c) => c.status === 'aguardando_pagamento').length; $('n-camp').textContent = nc; $('n-camp').hidden = !nc;
+  const ne = st.parts.filter((p) => p.status === 'entregue' || p.status === 'validada').length; $('n-ent').textContent = ne; $('n-ent').hidden = !ne;
+  document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.aba)));
+
+  let html = '';
+  if (st.aba === 'str') {
+    const l = aplicarFiltro('str', S, ['nome_exibicao', 'twitch_login']);
+    html = filtros('str', S) + `<div class="lista">${l.map(cardStreamer).join('') || '<div class="vazio">Nada por aqui.</div>'}</div>`;
+  } else if (st.aba === 'dev') {
+    const l = aplicarFiltro('dev', D, ['estudio', 'nome', 'email']);
+    html = filtros('dev', D) + `<div class="lista">${l.map(cardDev).join('') || '<div class="vazio">Nada por aqui.</div>'}</div>`;
+  } else if (st.aba === 'pesq') html = abaPesquisa();
+  else if (st.aba === 'camp') html = abaCampanhas();
+  else if (st.aba === 'ent') html = abaEntregas();
+  else if (st.aba === 'fin') html = abaFinanceiro();
+  else if (st.aba === 'precos') html = abaPrecos();
+  else if (st.aba === 'emails') html = abaEmails();
+  const foco = document.activeElement && document.activeElement.id === 'busca';
+  $('conteudo').innerHTML = html;
+  if (foco) { const b = $('busca'); b.focus(); b.setSelectionRange(b.value.length, b.value.length); }
+}
+
+/* ---------- ações ---------- */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.tab) { st.aba = d.tab; st.busca = ''; if (d.tab === 'emails') carregarEmails().then(render); render(); }
+  else if (d.filtro) { const [t, f] = d.filtro.split(':'); st.filtro[t] = f; render(); }
+  else if (d.aprovar) salvar('guilda_streamers', d.aprovar, { status: 'aprovado', rank: d.rank }, 'Streamer na guilda · rank ' + d.rank);
+  else if (d.verificar) salvar('guilda_devs', d.verificar, { status: 'aprovado' }, 'Estúdio verificado');
+  else if (d.recusar) { const [t, id] = d.recusar.split(':'); salvar(t === 'str' ? 'guilda_streamers' : 'guilda_devs', id, t === 'str' ? { status: 'recusado', rank: null } : { status: 'recusado' }, 'Recusado'); }
+  else if (d.reabrir) { const [t, id] = d.reabrir.split(':'); salvar(t === 'str' ? 'guilda_streamers' : 'guilda_devs', id, t === 'str' ? { status: 'pendente', rank: null } : { status: 'pendente' }, 'De volta para a fila'); }
+  else if (d.nota) { const [t, id] = d.nota.split(':'); salvar({ str: 'guilda_streamers', dev: 'guilda_devs', camp: 'guilda_campanhas' }[t], id, { notas_admin: $('nota-' + t + '-' + id).value.trim() || null }, 'Anotação salva'); }
+  else if (d.pago) {
+    if (st.confirmar !== 'pago:' + d.pago) { st.confirmar = 'pago:' + d.pago; render(); return; }
+    st.confirmar = null; const agora = new Date().toISOString();
+    salvar('guilda_campanhas', d.pago, { status: 'publicada', pago_em: agora, publicada_em: agora, pago_via: 'manual' }, 'Pagamento confirmado · quest no mural');
+  }
+  else if (d.campSt) {
+    const [novo, id] = d.campSt.split(':');
+    if (novo === 'encerrada' && st.confirmar !== 'encerrada:' + id) { st.confirmar = 'encerrada:' + id; render(); return; }
+    st.confirmar = null;
+    salvar('guilda_campanhas', id, novo === 'encerrada' ? { status: 'encerrada', encerrada_em: new Date().toISOString() } : { status: novo, cancelada_motivo: 'mestre', cancelada_em: new Date().toISOString() }, novo === 'encerrada' ? 'Campanha encerrada' : 'Campanha cancelada');
+  }
+  else if (d.validar) {
+    const v = (k) => { const x = $(k + '-' + d.validar).value; return x === '' ? null : Math.max(0, Math.round(Number(x))); };
+    const campos = { status: 'validada', validada_em: new Date().toISOString(), duracao_min: v('dur'), media_viewers: v('med'), pico_viewers: v('pic'), clipes: v('cli') };
+    if (!campos.duracao_min) { toast('Preencha a duração da live em minutos.'); return; }
+    salvar('guilda_participacoes', d.validar, campos, 'Entrega validada');
+  }
+  else if (d.partSt) { const [novo, id] = d.partSt.split(':'); salvar('guilda_participacoes', id, { status: novo }, novo === 'falhou' ? 'Marcada como não entregue' : 'Correção pedida ao streamer'); }
+  else if (d.pix) salvar('guilda_participacoes', d.pix, { status: 'paga', paga_em: new Date().toISOString() }, 'Pix registrado');
+  else if (d.twitch) verificarTwitch(d.twitch, b);
+  else if (b.id === 'salvar-precos') salvarPrecos();
+  else if (b.id === 'salvar-emails') salvarEmails();
+  else if (b.id === 'teste-email') testeEmail();
+  else if (b.id === 'atualizar-emails') carregarEmails().then(() => { render(); toast('Histórico atualizado'); });
+  else if (b.id === 'atualizar') { carregar().then(() => { render(); toast('Atualizado'); }); }
+  else if (b.id === 'sair') Guilda.sair();
+});
+document.addEventListener('input', (e) => { if (e.target.id === 'busca') { st.busca = e.target.value; render(); } });
+
+/* ---------- dados de demonstração (só sem as chaves) ---------- */
+const DEMO_STR = [
+  { id: 's1', twitch_login: 'toniterror', nome_exibicao: 'ToniTerror', twitch_tipo: 'affiliate', media_viewers: '10 a 30', frequencia: '3 a 4', generos: ['Terror', 'Narrativo'], horarios: ['Noite'], nota_ideia: 5, preco_justo: 'R$ 50 a R$ 100', comentario: 'Curti! Só queria saber se posso escolher o horário da live.', contato: '@toni', email: 'toni@email.com', status: 'pendente', aceite_regras: true, criado_em: '2026-09-24T12:00:00Z' },
+  { id: 's2', twitch_login: 'naranoturna', nome_exibicao: 'NaraNoturna', twitch_tipo: 'affiliate', media_viewers: '30 a 75', frequencia: '5 ou mais', generos: ['Roguelite', 'Soulslike'], horarios: ['Noite', 'Madrugada'], nota_ideia: 4, preco_justo: 'R$ 100 a R$ 200', comentario: '', contato: 'nara#1234', status: 'pendente', aceite_regras: true, criado_em: '2026-09-24T10:00:00Z' },
+  { id: 's3', twitch_login: 'bardodopixel', nome_exibicao: 'BardoDoPixel', twitch_tipo: 'partner', media_viewers: '150 a 400', frequencia: '3 a 4', generos: ['RPG', 'Estratégia'], nota_ideia: 5, preco_justo: 'R$ 200 a R$ 400', status: 'aprovado', rank: 'C', aceite_regras: true, criado_em: '2026-09-23T10:00:00Z' }
+];
+const DEMO_PRECOS = [{ rank: 'F', brl: 80, usd: 15 }, { rank: 'D', brl: 120, usd: 25 }, { rank: 'C', brl: 180, usd: 35 }, { rank: 'B', brl: 300, usd: 60 }, { rank: 'A', brl: 500, usd: 100 }];
+const DEMO_CFG = { taxa_auto: 20, taxa_manual: 25, mult_90: 1.4, mult_120: 1.8, usd_brl: 5.5, contato: 'guilda@exemplo.com', prazo_pagamento_dias: 3 };
+const DEMO_CAMP = [
+  { id: 'c1', jogo: 'Hollow Forge', evento: 'Steam Next Fest', rank_min: 'D', vagas: 10, minutos: 60, modo: 'auto', moeda: 'USD', valor_vaga: 25, taxa_pct: 20, subtotal: 250, taxa: 50, total: 300, recompensa_brl: 120, status: 'publicada', guilda_devs: { estudio: 'Ember Hollow Studio', email: 'alex@emberhollow.games' }, criado_em: '2026-09-24T10:00:00Z', steam_url: 'https://store.steampowered.com/app/123456', pedido: 'Show the floor 3 boss!' },
+  { id: 'c2', jogo: 'A Casa dos Sinos', evento: 'Demo / Playtest', rank_min: 'F', vagas: 8, minutos: 60, modo: 'manual', moeda: 'BRL', valor_vaga: 80, taxa_pct: 25, subtotal: 640, taxa: 160, total: 800, recompensa_brl: 80, status: 'aguardando_pagamento', guilda_devs: { estudio: 'Estúdio Lamparina', email: 'carla.lamparina@gmail.com' }, criado_em: '2026-09-24T12:00:00Z' }
+];
+const DEMO_PART = [
+  { id: 'p1', campanha_id: 'c1', status: 'entregue', link_vod: 'https://twitch.tv/videos/1', entregue_em: '2026-09-24T20:00:00Z', guilda_streamers: { nome_exibicao: 'BardoDoPixel', twitch_login: 'bardodopixel', contato: 'bardo#1' }, guilda_campanhas: { jogo: 'Hollow Forge', minutos: 60, recompensa_brl: 120, valor_vaga: 25, moeda: 'USD' } },
+  { id: 'p2', campanha_id: 'c1', streamer_id: 's2', status: 'validada', duracao_min: 72, media_viewers: 85, pico_viewers: 131, clipes: 4, link_vod: 'https://twitch.tv/videos/2', entregue_em: '2026-09-23T20:00:00Z', guilda_streamers: { nome_exibicao: 'LunaFPS', twitch_login: 'lunafps', contato: '(11) 90000-0000' }, guilda_campanhas: { jogo: 'Hollow Forge', minutos: 60, recompensa_brl: 120, valor_vaga: 25, moeda: 'USD' } },
+  { id: 'p3', campanha_id: 'c1', status: 'paga', guilda_streamers: {}, guilda_campanhas: {} }
+];
+const DEMO_EMAILS = [
+  { tipo: 'dev_pagamento', para: 'carla.lamparina@gmail.com', assunto: 'Pagamento da campanha A Casa dos Sinos · R$ 800,00', criado_em: '2026-09-24T12:00:05Z', http_status: 200 },
+  { tipo: 'admin_nova_campanha', para: 'voce@email.com', assunto: 'Nova campanha aguardando pagamento: A Casa dos Sinos', criado_em: '2026-09-24T12:00:05Z', http_status: 200 },
+  { tipo: 'streamers_nova_quest', para: '12 destinatários', assunto: 'Nova quest no mural: Hollow Forge · R$ 120,00', criado_em: '2026-09-24T10:00:00Z', http_status: 200 },
+  { tipo: 'streamer_recebido', para: 'toni@email.com', assunto: 'Recebemos sua candidatura na Guilda', criado_em: '2026-09-24T09:00:00Z', erro: 'chave do Resend não cadastrada no Vault' }
+];
+const DEMO_DEV = [
+  { id: 'd1', estudio: 'Ember Hollow Studio', nome: 'Alex Rivera', cargo: 'Founder', pais: 'Canada', email: 'alex@emberhollow.games', site: 'https://emberhollow.games', steam_url: 'https://store.steampowered.com/app/123456', equipe: '2-5', orcamento: '500-2000', idioma: 'en', jogos: 'Roguelite with co-op, demo live for Next Fest.', status: 'pendente', criado_em: '2026-09-24T11:00:00Z' },
+  { id: 'd2', estudio: 'Estúdio Lamparina', nome: 'Carla Souza', pais: 'Brasil', email: 'carla.lamparina@gmail.com', steam_url: 'https://store.steampowered.com/app/654321', equipe: 'solo', orcamento: '<200', idioma: 'pt', status: 'pendente', criado_em: '2026-09-24T09:00:00Z' }
+];
+
+(async function () {
+  const r = await Guilda.exigir('admin');
+  if (r.demo) $('demo-banner').hidden = false;
+  else {
+    const u = r.sessao.user;
+    const nome = Guilda.viaTwitch(u) ? Guilda.infoTwitch(u).login : (u.email || 'Mestre');
+    $('me-nome').textContent = nome;
+    $('me-ava').textContent = (nome || 'M').slice(0, 1).toUpperCase();
+  }
+  await carregar();
+  render();
+})();
+</script>
+</body>
+</html>
