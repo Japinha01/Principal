@@ -15,6 +15,10 @@ export const wz = (y) => y - C + 0.5;
 const hash01 = (i, s = 0) => { let h = Math.imul(i + 1, 2654435761) ^ Math.imul(s + 7, 40503); h ^= h >>> 15; return ((h >>> 0) % 10000) / 10000; };
 const dummy = new THREE.Object3D();
 const tmpCol = new THREE.Color();
+// lote instanciado: recalcula a área que ele ocupa depois de mudar as instâncias.
+// Sem isso o three.js usa a área antiga e esconde o lote inteiro quando a câmera
+// enquadra um ponto fora dela (ex.: zoom máximo em minério de era nova ou esteira nova).
+const refit = (...ms) => ms.forEach((m) => { m.computeBoundingSphere(); m.boundingBox = null; });
 const ease = { backOut: (t) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); } };
 
 // altura do topo de cada máquina (para os balões de status)
@@ -161,6 +165,8 @@ export class View {
     if (this.hub) this.scene.remove(this.hub);
     this.hub = null;
     this.rise = null;
+    this.orePop = null;
+    for (const k in this.oreMeshes) this.oreMeshes[k].scale.setScalar(1);
     this.launched = false;
     this.launch = null;
     this.buildIsland(false);
@@ -212,6 +218,7 @@ export class View {
     this.tileTop.count = this.tileBody.count = n;
     this.tileTop.instanceMatrix.needsUpdate = this.tileBody.instanceMatrix.needsUpdate = true;
     this.tileTop.instanceColor.needsUpdate = true;
+    refit(this.tileTop, this.tileBody);
     if (animateEra) this.rise = { t: 0 };
   }
 
@@ -230,10 +237,13 @@ export class View {
     const g = this.game;
     const counts = {};
     for (const k in this.oreMeshes) counts[k] = 0;
-    this.orePop = pop ? { t: 0 } : null;
+    if (pop) this.orePop = { t: 0 };
     for (let i = 0; i < N * N; i++) {
       const o = g.ore[i];
       if (!o || g.landEra[i] > g.era) continue;
+      // embaixo de esteira ou máquina o minério some (a mina fica em cima dele, então ele aparece)
+      const on = g.occ[i] && g.ents.get(g.occ[i]);
+      if (on && on.kind !== 'mine') continue;
       const m = this.oreMeshes[o];
       dummy.position.set(wx(i % N), 0, wz((i / N) | 0));
       dummy.rotation.set(0, hash01(i, 1) * 6.28, 0);
@@ -245,6 +255,7 @@ export class View {
     for (const k in this.oreMeshes) {
       this.oreMeshes[k].count = counts[k];
       this.oreMeshes[k].instanceMatrix.needsUpdate = true;
+      refit(this.oreMeshes[k]);
     }
   }
 
@@ -263,7 +274,7 @@ export class View {
       dummy.updateMatrix();
       m.setMatrixAt(c[t - 1]++, dummy.matrix);
     }
-    this.treeMeshes.forEach((m, k) => { m.count = c[k]; m.instanceMatrix.needsUpdate = true; });
+    this.treeMeshes.forEach((m, k) => { m.count = c[k]; m.instanceMatrix.needsUpdate = true; refit(m); });
   }
 
   /* ---------- eventos da simulação ---------- */
@@ -273,6 +284,7 @@ export class View {
       case 'place': case 'remove': case 'rotate':
         this.beltDirty = true;
         if (e.t === 'place' && e.tree) this.buildTrees();
+        if (e.t !== 'rotate') this.buildOres();
         if (e.t === 'remove') {
           this.fx.dust(wx(e.x), wz(e.y), '#e9dfcc', 12);
           this.fx.confetti(wx(e.x), 0.3, wz(e.y), 8, { power: 3, colors: [MACHINES[e.type].color, '#8a95a3'], life: 1 });
@@ -362,6 +374,7 @@ export class View {
     });
     this.beltBody.count = this.beltTop.count = belts.length;
     this.beltBody.instanceMatrix.needsUpdate = this.beltTop.instanceMatrix.needsUpdate = true;
+    refit(this.beltBody, this.beltTop);
     this.beltDirty = false;
   }
 
@@ -611,7 +624,7 @@ export class View {
         if (k > 0 && !a.col) { a.col = true; this.tileTop.setColorAt(a.n, tmpCol.set(this.tileColor(a.i, g.era))); this.tileTop.instanceColor.needsUpdate = true; if (hash01(a.i, 11) < 0.08) this.fx.puff(wx(a.i % N), 0, wz((a.i / N) | 0), { color: '#e8fbff', size: 0.25, rise: 0.5, life: 0.9 }); }
       }
       this.tileTop.instanceMatrix.needsUpdate = this.tileBody.instanceMatrix.needsUpdate = true;
-      if (!busy) { this.rise = null; this.buildTrees(); }
+      if (!busy) { this.rise = null; this.buildTrees(); refit(this.tileTop, this.tileBody); }
     }
     if (this.orePop) {
       this.orePop.t += dt;
