@@ -261,6 +261,77 @@ const BUILD = {
     ];
     return { stat, parts: [], noArrow: true };
   },
+
+  /* ---------- enfeites ---------- */
+  arvore() { return { stat: [treeGeos()[0]], parts: [], noArrow: true }; },
+  flores() {
+    const stat = [P(rb(0.86, 0.12, 0.86, 0.05), '#8a5a3b', { y: 0.06 }), P(rb(0.78, 0.04, 0.78, 0.03), '#5cc95a', { y: 0.13 })];
+    const cols = ['#ff6fa8', '#ffd23f', '#ffffff', '#ff5a4e', '#8a7dff', '#ff9f1a'];
+    for (let i = 0; i < 9; i++) {
+      const x = -0.26 + (i % 3) * 0.26, z = -0.26 + Math.floor(i / 3) * 0.26;
+      stat.push(P(cyl(0.012, 0.012, 0.14, 5), '#3ba34a', { x, y: 0.2, z }));
+      stat.push(P(sph(0.06, 8, 6), cols[i % cols.length], { x, y: 0.28, z, s: [1, 0.7, 1] }));
+      stat.push(P(sph(0.025, 6, 4), '#ffe9a8', { x, y: 0.31, z }));
+    }
+    return { stat, parts: [], noArrow: true };
+  },
+  banco() {
+    const wood = '#c98a4a', dark = '#56606c';
+    const stat = [
+      P(rb(0.74, 0.05, 0.24, 0.02), wood, { y: 0.26 }),
+      P(rb(0.74, 0.18, 0.04, 0.02), wood, { y: 0.42, z: -0.12, rx: -0.15 }),
+      ...[-0.3, 0.3].map((x) => P(rb(0.05, 0.26, 0.24, 0.02), dark, { x, y: 0.13 })),
+      P(cyl(0.02, 0.02, 0.2, 6), '#56606c', { x: 0.44, y: 0.1, z: 0.2 }),
+      P(cyl(0.07, 0.06, 0.12, 12), '#3ccf7a', { x: 0.44, y: 0.2, z: 0.2 }),
+    ];
+    return { stat, parts: [], noArrow: true };
+  },
+  poste() {
+    const stat = [P(cyl(0.1, 0.12, 0.08, 12), '#33404d', { y: 0.04 }), P(cyl(0.035, 0.045, 1.1, 10), '#33404d', { y: 0.6 }),
+      P(cyl(0.12, 0.08, 0.06, 12), '#33404d', { y: 1.2 })];
+    return { stat, parts: [{ geo: sph(0.1, 14, 10), name: 'lamp', pos: [0, 1.1, 0], glow: '#fff2b0' }], noArrow: true };
+  },
+  bandeira() {
+    const stat = [P(cyl(0.12, 0.14, 0.1, 12), '#dfe7ef', { y: 0.05 }), P(cyl(0.025, 0.025, 1.5, 8), '#dfe7ef', { y: 0.8 }), P(sph(0.045), '#ffd23f', { y: 1.57 })];
+    const flag = merge([P(rb(0.5, 0.32, 0.02, 0.01), '#ff5a4e', { x: 0.25 }), P(sph(0.07, 10, 8), '#fff4e3', { x: 0.25, s: [1, 1, 0.3] })]);
+    return { stat, parts: [{ geo: flag, name: 'flag', pos: [0.02, 1.32, 0] }], noArrow: true };
+  },
+  fonte() {
+    const stat = [
+      P(cyl(0.44, 0.46, 0.2, 24), '#dfe7ef', { y: 0.1 }),
+      P(cyl(0.38, 0.38, 0.05, 24), '#4ac6ff', { y: 0.19 }),
+      P(cyl(0.08, 0.1, 0.4, 12), '#dfe7ef', { y: 0.36 }),
+      P(cyl(0.2, 0.14, 0.06, 18), '#dfe7ef', { y: 0.56 }),
+      P(cyl(0.16, 0.16, 0.03, 18), '#4ac6ff', { y: 0.6 }),
+    ];
+    const jet = merge([P(cyl(0.03, 0.05, 0.4, 10), '#bdf0ff', { y: 0.2 }), P(sph(0.07, 10, 8), '#e6fbff', { y: 0.42 })]);
+    return { stat, parts: [{ geo: jet, name: 'jet', pos: [0, 0.6, 0] }], noArrow: true };
+  },
+  estatua() {
+    const stat = [P(rb(0.6, 0.3, 0.6, 0.06), '#dfe7ef', { y: 0.15 }), P(rb(0.5, 0.08, 0.5, 0.04), '#ffd23f', { y: 0.34 })];
+    const gear = merge([
+      P(cyl(0.3, 0.3, 0.1, 12), '#ffc400', { rx: Math.PI / 2 }),
+      P(cyl(0.12, 0.12, 0.12, 12), '#fff3a8', { rx: Math.PI / 2 }),
+      ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => P(rb(0.1, 0.12, 0.1, 0.02), '#ffc400', { x: Math.cos(k * Math.PI / 4) * 0.34, y: Math.sin(k * Math.PI / 4) * 0.34, rz: k * Math.PI / 4 })),
+    ]);
+    return { stat, parts: [{ geo: gear, name: 'gear', pos: [0, 0.82, 0] }], noArrow: true };
+  },
+  monumento() {
+    const stat = [P(rb(0.7, 0.24, 0.7, 0.06), '#dfe7ef', { y: 0.12 }), P(rb(0.56, 0.06, 0.56, 0.03), '#ff5a4e', { y: 0.27 })];
+    rocketGeos().forEach((g) => { g = g.clone(); g.scale(0.8, 0.8, 0.8); g.translate(0, 0.3, 0); stat.push(g); });
+    return { stat, parts: [], noArrow: true };
+  },
+  balao() {
+    const stat = [P(cyl(0.18, 0.2, 0.06, 14), '#8a5a3b', { y: 0.03 }), P(cyl(0.012, 0.012, 0.9, 5), '#56606c', { y: 0.45, x: 0.14 })];
+    const balloon = merge([
+      P(sph(0.42, 20, 14), '#ff9f1a', { y: 0.55, s: [1, 1.15, 1] }),
+      P(tor(0.42, 0.03, 6, 24), '#ff5a4e', { y: 0.55, rx: Math.PI / 2 }),
+      P(sph(0.425, 20, 14), '#ffd23f', { y: 0.55, s: [0.4, 1.16, 1.01] }),
+      ...[0, 1, 2, 3].map((k) => P(cyl(0.008, 0.008, 0.36, 4), '#56606c', { x: Math.cos(k * 1.57) * 0.1, z: Math.sin(k * 1.57) * 0.1, y: 0.02 })),
+      P(rb(0.22, 0.14, 0.22, 0.04), '#c98a4a', { y: -0.16 }),
+    ]);
+    return { stat, parts: [{ geo: balloon, name: 'balloon', pos: [0, 1.4, 0] }], noArrow: true };
+  },
 };
 
 /* foguete: 5 estágios que aparecem conforme as peças chegam */
@@ -302,7 +373,8 @@ export function machineModel(type) {
 }
 
 /* animação de cada tipo: t = tempo, w = trabalhando (0..1 suavizado) */
-export function animateMachine(type, g, t, w, phase) {
+// env.night: 0 de dia, 1 no meio da noite (acende postes)
+export function animateMachine(type, g, t, w, phase, env = {}) {
   const p = g.userData.parts;
   const a = t * 1.0 + phase;
   switch (type) {
@@ -337,11 +409,17 @@ export function animateMachine(type, g, t, w, phase) {
     case 'gerador': p.fan.rotation.y += 0.4 * w; break;
     case 'turbina': p.rotor.rotation.x += 0.05; break;
     case 'divisor': p.top.rotation.y += 0.06 + 0.1 * w; break;
+    // enfeites se mexem sempre
+    case 'poste': p.lamp.material.emissiveIntensity = 0.15 + (env.night || 0) * 3.2; break;
+    case 'bandeira': p.flag.rotation.y = Math.sin(a * 3) * 0.3; p.flag.scale.x = 1 + Math.sin(a * 5) * 0.04; break;
+    case 'fonte': p.jet.scale.y = 0.85 + Math.abs(Math.sin(a * 4)) * 0.35; break;
+    case 'estatua': p.gear.rotation.z += 0.012; break;
+    case 'balao': p.balloon.position.y = 1.4 + Math.sin(a * 0.9) * 0.18; p.balloon.rotation.y = Math.sin(a * 0.4) * 0.3; break;
   }
 }
 
 /* ---------- Sede (3x3), cresce um andar por era ---------- */
-export function hubModel(era) {
+export function hubModel(era, roof = '#ff5a4e') {
   const parts = [
     P(rb(2.92, 0.26, 2.92, 0.1), '#fff1d6', { y: 0.13 }),
     P(rb(2.6, 0.06, 2.6, 0.03), '#ffd23f', { y: 0.28 }),
@@ -353,10 +431,11 @@ export function hubModel(era) {
     parts.push(P(rb(0.06, 0.42, 0.6, 0.03), '#3b4a5c', { x, z, y: 0.5, ry: -k * Math.PI / 2 }));
     parts.push(P(rb(0.08, 0.06, 0.7, 0.02), '#ff5a4e', { x: x * 1.01, z: z * 1.01, y: 0.74, ry: -k * Math.PI / 2 }));
   }
-  // janelas
+  // janelas (malha à parte: acendem à noite)
+  const wins = [];
   for (let k = 0; k < 4; k++) for (const o of [-0.5, 0.5]) {
     const ang = k * Math.PI / 2, nx = Math.cos(ang), nz = Math.sin(ang), tx = -nz, tz = nx;
-    parts.push(P(rb(0.04, 0.16, 0.2, 0.02), '#5b8def', { x: nx * 0.96 + tx * o, z: nz * 0.96 + tz * o, y: 0.9, ry: -ang }));
+    wins.push(P(rb(0.04, 0.16, 0.2, 0.02), '#5b8def', { x: nx * 0.96 + tx * o, z: nz * 0.96 + tz * o, y: 0.9, ry: -ang }));
   }
   let y = 1.1, w = 1.6;
   const floors = Math.max(0, era - 1);
@@ -365,16 +444,20 @@ export function hubModel(era) {
     parts.push(P(rb(w, 0.42, w, 0.1), floorColors[f % floorColors.length], { y: y + 0.21 }));
     for (let k = 0; k < 4; k++) {
       const ang = k * Math.PI / 2;
-      parts.push(P(rb(0.04, 0.14, w * 0.5, 0.02), '#5b8def', { x: Math.cos(ang) * (w / 2 + 0.005), z: Math.sin(ang) * (w / 2 + 0.005), y: y + 0.22, ry: -ang }));
+      wins.push(P(rb(0.04, 0.14, w * 0.5, 0.02), '#5b8def', { x: Math.cos(ang) * (w / 2 + 0.005), z: Math.sin(ang) * (w / 2 + 0.005), y: y + 0.22, ry: -ang }));
     }
     y += 0.42;
     w -= 0.2;
   }
-  parts.push(P(rb(w + 0.12, 0.14, w + 0.12, 0.06), '#ff5a4e', { y: y + 0.07 }));
+  parts.push(P(rb(w + 0.12, 0.14, w + 0.12, 0.06), roof, { y: y + 0.07 }));
   parts.push(P(cyl(0.025, 0.025, 0.8, 8), '#dfe7ef', { y: y + 0.54, x: -w * 0.36, z: -w * 0.36 }));
   const g = new THREE.Group();
   g.add(mesh(merge(parts)));
-  const flag = mesh(P(rb(0.34, 0.2, 0.02, 0.01), '#ff5a4e', { x: 0.17 }));
+  const winMesh = mesh(merge(wins), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, emissive: '#ffc862', emissiveIntensity: 0 }));
+  winMesh.castShadow = false;
+  g.add(winMesh);
+  g.userData.windows = winMesh;
+  const flag = mesh(P(rb(0.34, 0.2, 0.02, 0.01), roof, { x: 0.17 }));
   flag.position.set(-w * 0.36, y + 0.82, -w * 0.36);
   g.add(flag);
   g.userData.flag = flag;

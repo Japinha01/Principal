@@ -92,6 +92,23 @@ export class Audio {
         this.noise(4.5, { vol: 0.35, freq: 180, q: 0.5 });
         this.tone(60, 4.5, { type: 'sawtooth', vol: 0.12, slide: 3 });
         break;
+      case 'boom': { // fogos: estalo + chiado das faíscas
+        const now = this.ctx.currentTime;
+        if (now - (this.lastBoom || 0) < 0.12) return;
+        this.lastBoom = now;
+        this.noise(0.35, { vol: 0.22, freq: 260, q: 0.6 });
+        this.noise(0.9, { vol: 0.05, freq: 5200, q: 0.4, at: 0.08 });
+        break;
+      }
+      case 'ach':
+        [7, 12, 16, 19].forEach((s, i) => this.tone(this.note(s), 0.22, { type: 'sine', vol: 0.12, at: i * 0.07 }));
+        this.tone(this.note(24), 0.5, { vol: 0.1, at: 0.28 });
+        break;
+      case 'contract':
+        [0, 7, 12].forEach((s, i) => this.tone(this.note(s + 5), 0.2, { vol: 0.13, at: i * 0.06 }));
+        this.tone(this.note(17), 0.35, { type: 'sine', vol: 0.1, at: 0.2 });
+        break;
+      case 'shutter': this.noise(0.06, { vol: 0.25, freq: 3000 }); this.noise(0.08, { vol: 0.18, freq: 1800, at: 0.09 }); break;
       case 'victory':
         [0, 4, 7, 12, 7, 12, 16, 19, 24].forEach((s, i) => this.tone(this.note(s), 0.35, { vol: 0.15, at: i * 0.11 }));
         break;

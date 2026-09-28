@@ -43,7 +43,7 @@ if(!/\/$|\.html$/.test(location.pathname))location.replace(location.pathname+'/'
   --safeT:env(safe-area-inset-top,0px); --safeB:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#7fcaf5 0%,#bfe9ff 55%,#d9f4ff 100%);font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(var(--sky1,#7fcaf5) 0%,var(--sky2,#bfe9ff) 55%,var(--sky3,#d9f4ff) 100%);font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
 button{font:inherit;color:inherit;cursor:pointer}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
 [hidden]{display:none!important}
@@ -118,9 +118,97 @@ button{font:inherit;color:inherit;cursor:pointer}
 #tip .muted{color:var(--ink2)}
 
 /* ---------- ferramentas rápidas ---------- */
-#quick{position:fixed;left:12px;bottom:calc(112px + var(--safeB));display:flex;flex-direction:column;gap:8px;z-index:5}
-#quick .tbtn{width:50px;justify-content:center;padding:0;font-size:22px}
+#quick{position:fixed;left:12px;bottom:calc(112px + var(--safeB));display:flex;gap:8px;z-index:5}
+#quick .tbtn{width:50px;justify-content:center;padding:0;font-size:22px;position:relative}
+#quick #qSpeed{font-size:17px;font-variant-numeric:tabular-nums}
+#quick #qSpeed.fast{background:var(--yellow)}
+.badge{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:99px;background:var(--red);color:#fff;font-size:11px;font-weight:700;line-height:19px;text-align:center;padding:0 4px}
+.badge:empty{display:none}
 #cursorTip{position:fixed;z-index:8;pointer-events:none;background:rgba(39,48,74,.9);color:#fff;font-size:13px;font-weight:600;padding:5px 10px;border-radius:10px;transform:translate(14px,14px);white-space:nowrap}
+
+/* ---------- engrenagens de ouro ---------- */
+.gearIco{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3a8,#ffc400 55%,#e0a100);color:#8a5a00;font-size:17px;line-height:1;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+#gears{font-variant-numeric:tabular-nums}
+
+/* ---------- pedidos ---------- */
+#orders{position:fixed;right:12px;width:300px;padding:10px 12px 8px;z-index:4;overflow:auto}
+#orders .oh{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+#orders .oh button{border:0;background:none;font-weight:700;color:var(--blue);font-size:15px;padding:0 4px}
+#orders.min .ob{display:none}
+#orders.min .oh{margin:0}
+.ord{display:grid;grid-template-columns:34px 1fr auto;gap:0 8px;align-items:center;background:#f7f3ea;border-radius:12px;padding:6px 8px;margin-bottom:6px;position:relative}
+.ord.timed{background:#fff1d6;box-shadow:inset 0 0 0 2px #ffd28a}
+.ord img{width:34px;height:34px}
+.ord .on{display:flex;justify-content:space-between;gap:6px;font-weight:600;font-size:14px;line-height:1.2}
+.ord .on .ct{font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink2);font-size:13px}
+.ord .bar{height:7px;border-radius:99px;background:#e6e0d2;overflow:hidden;margin-top:4px}
+.ord .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#7ab0ff);border-radius:99px;transition:width .25s}
+.ord.timed .bar i{background:linear-gradient(90deg,var(--orange),#ffd23f)}
+.ord .or{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;font-weight:700}
+.ord .pill{background:#fff4c9;border-radius:99px;padding:1px 8px;white-space:nowrap}
+.ord .pill.g{background:#ffe9a8;color:#8a5a00}
+.ord .tm{color:#b8322a;font-variant-numeric:tabular-nums}
+.ord .tm.ok{color:var(--ink2)}
+.ord .rr{position:absolute;top:-6px;left:-6px;width:22px;height:22px;border:0;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:13px;font-weight:700;padding:0;line-height:22px;color:var(--ink2);opacity:.9}
+.ord .rr:hover{color:var(--blue);opacity:1}
+.onext{font-size:12.5px;color:var(--ink2);font-weight:600;text-align:center;padding:2px 0 4px}
+
+/* ---------- foguete no modo livre ---------- */
+.big.launch{width:100%;margin:4px 0 2px;font-size:17px;padding:11px;animation:pulse 1.2s infinite}
+
+/* ---------- modo foto ---------- */
+body.photo #top,body.photo #goal,body.photo #bar,body.photo #quick,body.photo #orders,body.photo #inspect,body.photo #tip,body.photo #cursorTip,body.photo #floats,body.photo #banner{display:none!important}
+#photoBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + var(--safeB));display:none;gap:10px;z-index:6;padding:8px}
+body.photo #photoBar{display:flex}
+#photoBar .tbtn{box-shadow:none;background:#f3efe6;white-space:nowrap}
+#photoBar #phShot{background:var(--yellow);font-size:17px}
+#flash{position:fixed;inset:0;background:#fff;pointer-events:none;z-index:40;opacity:0}
+#flash.go{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+
+/* ---------- conquista ---------- */
+.toast.ach{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#fff8dc,#ffe9a8);border-color:#ffd23f;padding:8px 14px}
+.toast.ach .ai{font-size:28px}
+.toast.ach small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#b07a00;font-weight:700}
+.toast.ach b{font-size:16px}
+.toast.ach .g{font-size:12px;font-weight:700;background:#fff;border-radius:99px;padding:2px 8px;color:#8a5a00}
+
+/* ---------- janelas novas ---------- */
+.tabs{margin:2px auto 12px;width:max-content;max-width:100%}
+.tabs button{padding:7px 12px;font-size:14px}
+.ghead{display:flex;align-items:center;justify-content:center;gap:8px;font-size:22px;font-weight:700;margin:4px 0}
+.ghead .gearIco{width:34px;height:34px;font-size:22px}
+.up.lg h4{display:flex;justify-content:space-between;gap:6px}
+.island{margin-top:14px;background:#eaf3ff;border-radius:14px;padding:12px;text-align:left}
+.island h4{margin:0 0 2px;font-size:17px}
+.island p{margin:2px 0 8px!important;font-size:13px}
+.island button{width:100%}
+.island button:disabled{background:#dfe3ea;box-shadow:none;color:var(--ink2);cursor:default}
+.achs{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;margin-top:8px}
+.achs div{display:flex;gap:8px;align-items:center;background:#fff4c9;box-shadow:inset 0 0 0 2px #ffd23f;border-radius:12px;padding:8px;position:relative}
+.achs div:not(.no)::after{content:'✓';position:absolute;top:4px;right:8px;color:#c79a00;font-weight:700}
+.achs .ai{font-size:24px;flex-shrink:0;width:30px;text-align:center}
+.achs b{display:block;font-size:14px}
+.achs small{display:block;font-size:12px;color:var(--ink2);line-height:1.3}
+.achs .no{background:#eef1f6;box-shadow:none}
+.achs .no .ai{filter:grayscale(1);opacity:.35}
+.achs .no b{color:var(--ink2)}
+.slist{text-align:left;margin-top:6px}
+.slist div{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;border-bottom:2px dashed var(--line);font-weight:600;font-size:14px}
+.slist div span{color:var(--ink2)}
+.slist .top{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.slist .top i{font-style:normal;display:inline-flex;align-items:center;gap:2px;background:#f3efe6;border-radius:99px;padding:1px 8px 1px 1px;font-size:12.5px}
+.slist .top img{width:22px;height:22px}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0 4px}
+.swatches button{height:52px;border:0;border-radius:14px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18);position:relative}
+.swatches button.on::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:24px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.swatches button:disabled{opacity:.45;cursor:default}
+.cust{text-align:left}
+.cust h4{margin:14px 0 2px;display:flex;justify-content:space-between;align-items:center}
+.cust h4 .pill{font-size:13px;background:#fff4c9;border-radius:99px;padding:1px 10px}
+.cust p{margin:2px 0!important;font-size:13px}
+.cust .big{width:100%}
+.big:disabled{background:#dfe3ea;box-shadow:0 5px 0 #c9d0db;color:var(--ink2);cursor:default}
 
 /* ---------- inspeção ---------- */
 #inspect{position:fixed;left:12px;top:calc(72px + var(--safeT));width:290px;padding:14px;z-index:4}
@@ -205,7 +293,11 @@ button{font:inherit;color:inherit;cursor:pointer}
   #top{left:8px;right:8px;gap:6px}
   .chip{padding:6px 10px;min-height:44px}
   #coins{font-size:18px}
-  #power{min-width:0;flex:1}
+  #power{min-width:0;flex:1;padding:6px 8px}
+  #power [data-t="power"]{display:none}
+  #ptext{white-space:nowrap}
+  #goal .hint.rh{display:none}
+  .big.launch{font-size:15px;padding:8px}
   .tbtn{min-height:44px;padding:0 12px}
   .tbtn .lbl{display:none}
   #goal{left:8px;right:8px;width:auto;top:calc(58px + var(--safeT));padding:8px 12px 9px;border-radius:14px}
@@ -236,8 +328,17 @@ button{font:inherit;color:inherit;cursor:pointer}
   .bb{width:60px;height:70px}
   .bb img{width:48px;height:48px;left:6px}
   .bb .key{display:none}
-  #quick{bottom:calc(96px + var(--safeB));left:8px;flex-direction:row}
+  #quick{bottom:calc(96px + var(--safeB));left:8px;flex-direction:row;gap:6px}
   #quick .tbtn{width:44px;min-height:44px;font-size:20px;border-radius:14px}
+  #quick #qSpeed{font-size:15px}
+  #orders{left:8px;right:8px;width:auto;padding:8px 10px 4px;border-radius:14px}
+  #orders .oh button{display:none}
+  .ord{padding:4px 8px;margin-bottom:5px}
+  .ord img{width:28px;height:28px}
+  .ord .on{font-size:13px}
+  #photoBar{bottom:calc(10px + var(--safeB))}
+  .achs{grid-template-columns:1fr}
+  .tbtn .gearIco{width:22px;height:22px;font-size:14px}
 }
 </style>
 </head>
@@ -250,18 +351,29 @@ button{font:inherit;color:inherit;cursor:pointer}
   <div class="panel chip"><i class="coin"></i><span id="coins">$0</span><span class="sub rev" id="rev"></span></div>
   <div class="panel chip" id="power" hidden><div class="row"><span>⚡ <span data-t="power"></span></span><span id="ptext"></span></div><div class="pbar" id="pbar"><i></i></div></div>
   <div class="spacer"></div>
+  <button class="tbtn" id="btnMeta"><span class="gearIco">⚙</span><b id="gears">0</b></button>
   <button class="tbtn" id="btnUp">⬆<span class="lbl" data-t="upgrades"></span></button>
   <button class="tbtn" id="btnMenu">☰</button>
 </div>
 
 <aside id="goal" class="panel" hidden></aside>
 <div id="inspect" class="panel" hidden></div>
+<div id="orders" class="panel" hidden></div>
 <nav id="bar" class="panel" hidden></nav>
 <div id="quick" hidden>
   <button class="tbtn" id="qRot" title="R">↻</button>
   <button class="tbtn" id="qCamL" title="Q">⟲</button>
   <button class="tbtn" id="qCamR" title="E">⟳</button>
+  <button class="tbtn" id="qSpeed" title="V">1×</button>
+  <button class="tbtn" id="qPhoto" title="C">📷</button>
+  <button class="tbtn" id="qOrders" hidden>📜<span class="badge" id="ordBadge"></span></button>
 </div>
+<div id="photoBar" class="panel">
+  <button class="tbtn" id="phTime">🌗</button>
+  <button class="tbtn" id="phShot">📸 <span data-t="photoTake"></span></button>
+  <button class="tbtn" id="phExit">✕</button>
+</div>
+<div id="flash"></div>
 <div id="tip" class="panel" hidden></div>
 <div id="cursorTip" hidden></div>
 <div id="toasts"></div>

@@ -73,7 +73,20 @@ export const MACHINES = {
   inducao:     { kind: 'machine',   cost: 1500, key: 'I', pw: 15, color: '#5ad8ff' },
   plataforma:  { kind: 'pad',       cost: 0,    key: 'P', color: '#ff5a4e', unique: true },
   sede:        { kind: 'hub',       cost: 0,    color: '#ffffff' },
+  // enfeites: não fazem nada, só deixam a ilha bonita (liberam por era; os de 'won' depois do foguete)
+  arvore:      { kind: 'deco',      cost: 20,    color: '#4fbf5a' },
+  flores:      { kind: 'deco',      cost: 40,    color: '#ff6fa8' },
+  banco:       { kind: 'deco',      cost: 60,    color: '#c98a4a' },
+  poste:       { kind: 'deco',      cost: 100,   color: '#ffd23f' },
+  bandeira:    { kind: 'deco',      cost: 250,   color: '#ff5a4e' },
+  fonte:       { kind: 'deco',      cost: 800,   color: '#4ac6ff' },
+  estatua:     { kind: 'deco',      cost: 5000,  color: '#ffc400' },
+  monumento:   { kind: 'deco',      cost: 8000,  color: '#ff5a4e' },
+  balao:       { kind: 'deco',      cost: 15000, color: '#ff9f1a' },
 };
+export const DECOS = ['arvore', 'flores', 'banco', 'poste', 'bandeira', 'fonte', 'estatua', 'monumento', 'balao'];
+// liberados junto com o primeiro foguete
+export const WIN_UNLOCK = ['estatua', 'monumento', 'balao'];
 
 // ordem da barra de construção
 export const BUILD_ORDER = ['esteira', 'mina', 'fornalha', 'divisor', 'cruzamento', 'prensa', 'torno', 'gerador',
@@ -86,6 +99,7 @@ export const BUILD_GROUPS = [
   { id: 'producao',  items: ['fornalha', 'prensa', 'torno', 'trefiladora', 'montadora', 'refinaria', 'fabrica', 'inducao'] },
   { id: 'energia',   items: ['gerador', 'turbina'] },
   { id: 'especial',  items: ['plataforma'] },
+  { id: 'enfeites',  items: DECOS },
 ];
 
 /* ---------- receitas ----------
@@ -121,7 +135,7 @@ export const ERAS = [
     ],
   },
   { // 2 — Oficina
-    unlock: ['prensa', 'torno', 'gerador'],
+    unlock: ['prensa', 'torno', 'gerador', 'arvore', 'flores', 'banco'],
     ores: ['carvao'],
     power: true,
     goals: [
@@ -131,7 +145,7 @@ export const ERAS = [
     ],
   },
   { // 3 — Motores
-    unlock: ['trefiladora', 'montadora', 'mina2'],
+    unlock: ['trefiladora', 'montadora', 'mina2', 'poste'],
     goals: [
       { need: { fio: 50 },                     reward: 400 },
       { need: { motor: 10 },                   reward: 600 },
@@ -139,7 +153,7 @@ export const ERAS = [
     ],
   },
   { // 4 — Eletrônica
-    unlock: ['turbina'],
+    unlock: ['turbina', 'bandeira', 'fonte'],
     ores: ['areia'],
     goals: [
       { need: { vidro: 30 },                   reward: 800 },
@@ -179,6 +193,34 @@ export const UPGRADES = {
   minas:    { per: 0.25, cost: [200, 800, 3000, 8000], minEra: [2, 3, 4, 5] },
   vendas:   { per: 0.15, cost: [500, 2000, 6000, 15000], minEra: [2, 3, 4, 5] },
 };
+
+/* ---------- pedidos: contratos extras que se renovam para sempre (a partir da era 2) ----------
+   value = quanto a encomenda vale em moedas, pelo ritmo atual da fábrica;
+   quem cumpre recebe as entregas normais + reward (e o relâmpago dá engrenagem de ouro) */
+export const CONTRACTS = {
+  minEra: 2, slots: 3, respawn: 20,
+  minValue: 100, revenueMinutes: 2,          // tamanho: ~2 min da receita atual
+  timedChance: 0.4, timedMult: 2.5, mult: 1.6,
+  timeMin: 90, timeMax: 300,
+};
+
+/* ---------- legado: bônus permanentes comprados com Engrenagens de Ouro ----------
+   valem em todas as ilhas; per = ganho por nível */
+export const LEGACY = {
+  fabrica:  { per: 0.10, cost: [2, 3, 5, 8, 12] },   // velocidade das máquinas
+  esteira:  { per: 0.10, cost: [2, 3, 5, 8, 12] },   // velocidade das esteiras
+  mina:     { per: 0.10, cost: [2, 3, 5, 8, 12] },   // velocidade das minas
+  venda:    { per: 0.10, cost: [3, 5, 8, 12, 16] },  // valor de cada entrega
+  inicio:   { per: 150,  cost: [1, 2, 3, 5, 8] },    // moedas ao começar uma ilha
+  desconto: { per: 0.05, cost: [3, 5, 8, 12] },      // construções mais baratas
+  marco:    { per: 0.25, cost: [2, 4, 6, 9] },       // recompensa dos marcos
+};
+// engrenagens de ouro ganhas
+export const GEARS = { launch: 3, achievement: 1, timedContract: 1 };
+export const ROCKET_PARTS = 20;               // peças por foguete (também no modo livre)
+export const HUB_COLORS = ['#ff5a4e', '#4d8dff', '#3ccf7a', '#8a7dff', '#ff9f1a', '#ff6fa8', '#27304a', '#ffd23f'];
+export const HUB_PAINT_COST = 500;
+export const FIREWORKS_COST = 300;
 
 export const START_COINS = 60;
 export const BELT_SPEED = 2.0;     // tiles por segundo

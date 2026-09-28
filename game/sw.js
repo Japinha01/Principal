@@ -1,9 +1,9 @@
 /* Fundição 7 — service worker: deixa o jogo instalável e jogável sem internet.
    Rede primeiro (sempre pega a versão nova); sem internet, usa a cópia guardada.
    Ao mudar a lista abaixo, troque a VERSAO. */
-const VERSAO = 'fundicao7-v2-3';
+const VERSAO = 'fundicao7-v3-0';
 const ARQUIVOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
-  './src/main.js', './src/sim.js', './src/data.js', './src/render.js', './src/models.js', './src/fx.js', './src/audio.js', './src/i18n.js',
+  './src/main.js', './src/sim.js', './src/data.js', './src/render.js', './src/models.js', './src/fx.js', './src/audio.js', './src/i18n.js', './src/meta.js',
   './vendor/three.module.min.js', './vendor/RoundedBoxGeometry.js', './vendor/BufferGeometryUtils.js'];
 
 self.addEventListener('install', (e) => {

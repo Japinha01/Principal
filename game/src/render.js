@@ -5,7 +5,7 @@
    construção, seta de dica, câmera e o lançamento do foguete.
    ============================================================ */
 import * as THREE from 'three';
-import { N, C, DX, DY, MACHINES, ITEMS, ERA_RADIUS, MAX_ERA, BELT_SPEED, UPGRADES } from './data.js';
+import { N, C, DX, DY, MACHINES, ITEMS, ERA_RADIUS, MAX_ERA, ROCKET_PARTS } from './data.js';
 import { idx, inGrid, recipeById } from './sim.js';
 import * as MD from './models.js';
 import { FX } from './fx.js';
@@ -20,6 +20,19 @@ const tmpCol = new THREE.Color();
 // enquadra um ponto fora dela (ex.: zoom máximo em minério de era nova ou esteira nova).
 const refit = (...ms) => ms.forEach((m) => { m.computeBoundingSphere(); m.boundingBox = null; });
 const ease = { backOut: (t) => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); } };
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// dia e noite: uma volta completa a cada DAY_LEN segundos. night = 0 de dia, 1 no meio da noite
+export const DAY_LEN = 300;
+const nightAt = (p) => smooth(0.6, 0.7, p) - smooth(0.9, 1.0, p);
+// momentos do dia para o modo foto (fração da volta)
+const TIMES = [0.3, 0.655, 0.8, 0.95];
+const SKY = {
+  day: { hemi: '#e6f6ff', ground: '#6f9a5c', sun: '#fff4dc', fog: '#bfe9ff', water: '#3fb8ea', floor: '#2a8fc4', css: ['#7fcaf5', '#bfe9ff', '#d9f4ff'] },
+  night: { hemi: '#6475b0', ground: '#2a3350', sun: '#9db2ff', fog: '#22305a', water: '#1f4f8a', floor: '#12305a', css: ['#0b1330', '#22305a', '#2e3f70'] },
+};
+const dusk = new THREE.Color('#ff9a5c');
+const lerpHex = (a, b, k) => '#' + tmpCol.set(a).lerp(new THREE.Color(b), k).getHexString();
 
 // altura do topo de cada máquina (para os balões de status)
 const TOP = { mina: 1.2, mina2: 1.2, bomba: 1.0, fornalha: 1.3, prensa: 1.15, torno: 0.85, trefiladora: 0.85, montadora: 1.05,
@@ -43,7 +56,8 @@ export class View {
     scene.fog = new THREE.Fog('#bfe9ff', 55, 130);
     this.camera = new THREE.PerspectiveCamera(32, 1, 0.3, 400);
 
-    scene.add(new THREE.HemisphereLight('#e6f6ff', '#6f9a5c', 1.35));
+    this.hemi = new THREE.HemisphereLight('#e6f6ff', '#6f9a5c', 1.35);
+    scene.add(this.hemi);
     const sun = this.sun = new THREE.DirectionalLight('#fff4dc', 2.3);
     sun.castShadow = true;
     sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
@@ -58,12 +72,13 @@ export class View {
     water.receiveShadow = true;
     scene.add(water);
     this.water = water;
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: '#2a8fc4' }));
+    const floor = this.floor = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: '#2a8fc4' }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -2.2;
     scene.add(floor);
 
     this.fx = new FX(scene);
+    this.sky = { cycle: true, clock: 0, night: 0, manual: false, css: -1 };
     this.cam = { tx: 0.5, tz: 0.5, dist: 26, az: Math.PI / 4, el: 0.92, gtx: 0.5, gtz: 0.5, gdist: 26, gaz: Math.PI / 4, shake: 0, ty: 0, gty: 0 };
     this.objs = new Map();      // id → { g, type, w, phase, pop }
     this.t = 0;
@@ -166,8 +181,8 @@ export class View {
     this.hub = null;
     this.rise = null;
     this.orePop = null;
+    this.pendingLaunch = false;
     for (const k in this.oreMeshes) this.oreMeshes[k].scale.setScalar(1);
-    this.launched = false;
     this.launch = null;
     this.buildIsland(false);
     this.buildOres();
@@ -296,6 +311,17 @@ export class View {
       case 'era':
         this.eraUp();
         break;
+      case 'paint':
+        this.rebuildHub();
+        this.hubBounce = 1;
+        this.fx.confetti(wx(C), 2.2, wz(C), 60, { power: 5, colors: [e.color, '#ffffff', '#ffd23f'] });
+        break;
+      case 'fireworks':
+        this.fireworks(9);
+        break;
+      case 'victory': case 'launch':
+        this.pendingLaunch = true; // as peças já saíram da conta, mas o foguete continua na plataforma até subir
+        break;
     }
   }
 
@@ -310,16 +336,16 @@ export class View {
 
   rebuildHub() {
     if (this.hub) this.scene.remove(this.hub);
-    this.hub = MD.hubModel(this.game.era);
+    this.hub = MD.hubModel(this.game.era, this.game.hubColor);
     this.hub.position.set(wx(C), 0, wz(C));
     this.scene.add(this.hub);
-    this.hubEra = this.game.era;
+    this.hubKey = this.game.era + this.game.hubColor;
   }
 
   /* ---------- máquinas: cria/remove objetos conforme a simulação ---------- */
   syncEnts(initial = false) {
     const g = this.game;
-    if (!this.hub || this.hubEra !== g.era) this.rebuildHub();
+    if (!this.hub || this.hubKey !== g.era + g.hubColor) this.rebuildHub();
     const seen = new Set();
     for (const e of g.ents.values()) {
       if (e.kind === 'belt' || e.kind === 'hub') continue;
@@ -562,6 +588,7 @@ export class View {
   startLaunch(onDone) {
     let pad = null;
     for (const e of this.game.ents.values()) if (e.kind === 'pad') pad = e;
+    this.pendingLaunch = false;
     if (!pad) { onDone && onDone(); return; }
     const o = this.objs.get(pad.id);
     this.launch = { t: 0, pad, o, onDone, x: wx(pad.x), z: wz(pad.y) };
@@ -589,15 +616,82 @@ export class View {
     if (L.t > 2 && !L.boom && ry > 22) {
       L.boom = true;
       for (let k = 0; k < 5; k++) this.fx.confetti(x + (Math.random() - 0.5) * 6, ry * 0.5 + 4 + Math.random() * 4, z + (Math.random() - 0.5) * 6, 70, { power: 7, gravity: 3.5, life: 3.5 });
+      for (let k = 0; k < 4; k++) this.fx.firework(x + (Math.random() - 0.5) * 8, z + (Math.random() - 0.5) * 8, { delay: k * 0.35 });
     }
     if (L.t > 6.5) {
       if (o && o.rocket) o.rocket.forEach((m) => { m.visible = false; });
-      this.launched = true;
       this.launch = null;
       this.cam.gty = 0;
       this.cam.shake = 0;
       L.onDone && L.onDone();
     }
+  }
+
+  /* ---------- fogos, dia/noite e foto ---------- */
+  fireworks(n = 8, x = wx(C), z = wz(C)) {
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 4;
+      this.fx.firework(x + Math.cos(a) * r, z + Math.sin(a) * r, { delay: k * 0.45 + Math.random() * 0.3 });
+    }
+  }
+
+  setCycle(on) { this.sky.cycle = !!on; }
+  // pula para o próximo momento do dia (modo foto): dia → pôr do sol → noite → amanhecer
+  nextTimeOfDay() {
+    const S = this.sky, base = Math.floor(S.clock / DAY_LEN) * DAY_LEN, p = S.clock / DAY_LEN - base / DAY_LEN;
+    const next = TIMES.find((q) => q > p + 0.01);
+    S.clock = next != null ? base + next * DAY_LEN : base + DAY_LEN + TIMES[0] * DAY_LEN;
+    S.manual = true;
+    this.sky.jump = true;
+  }
+  updateSky(dt) {
+    const S = this.sky;
+    const on = S.cycle || S.manual;
+    if (on) S.clock += dt;
+    const target = on ? nightAt((S.clock / DAY_LEN) % 1) : 0;
+    S.night = S.jump ? target : S.night + (target - S.night) * Math.min(1, dt * 1.5);
+    S.jump = false;
+    const n = S.night, mid = 4 * n * (1 - n); // mid: pôr do sol / amanhecer
+    this.env = { night: n };
+    this.hemi.color.set(SKY.day.hemi).lerp(tmpCol.set(SKY.night.hemi), n).lerp(dusk, mid * 0.3);
+    this.hemi.groundColor.set(SKY.day.ground).lerp(tmpCol.set(SKY.night.ground), n);
+    this.hemi.intensity = 1.35 - 0.6 * n;
+    this.sun.color.set(SKY.day.sun).lerp(tmpCol.set(SKY.night.sun), n).lerp(dusk, mid * 0.75);
+    this.sun.intensity = 2.3 - 1.7 * n + mid * 0.5;
+    this.scene.fog.color.set(SKY.day.fog).lerp(tmpCol.set(SKY.night.fog), n).lerp(dusk, mid * 0.25);
+    this.water.material.color.set(SKY.day.water).lerp(tmpCol.set(SKY.night.water), n);
+    this.floor.material.color.set(SKY.day.floor).lerp(tmpCol.set(SKY.night.floor), n);
+    // céu atrás do canvas (CSS): só mexe quando muda de verdade
+    const q = Math.round(n * 60) + Math.round(mid * 20) * 100;
+    if (q !== S.css) {
+      S.css = q;
+      const st = document.documentElement.style;
+      SKY.day.css.forEach((c, i) => st.setProperty('--sky' + (i + 1), lerpHex(lerpHex(c, SKY.night.css[i], n), '#ff9a5c', mid * (i ? 0.35 : 0.15))));
+      document.body.classList.toggle('night', n > 0.5);
+    }
+  }
+  get night() { return this.sky.night; }
+
+  // foto: desenha o quadro atual numa imagem PNG (com marca d'água pequena)
+  snapshot(mark = 'Fundição 7') {
+    this.renderer.render(this.scene, this.camera);
+    const src = this.renderer.domElement;
+    const cv = document.createElement('canvas');
+    cv.width = src.width; cv.height = src.height;
+    const x = cv.getContext('2d');
+    const bg = x.createLinearGradient(0, 0, 0, cv.height);
+    const st = getComputedStyle(document.documentElement);
+    bg.addColorStop(0, st.getPropertyValue('--sky1').trim() || '#7fcaf5');
+    bg.addColorStop(0.55, st.getPropertyValue('--sky2').trim() || '#bfe9ff');
+    bg.addColorStop(1, st.getPropertyValue('--sky3').trim() || '#d9f4ff');
+    x.fillStyle = bg; x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(src, 0, 0);
+    const f = Math.max(14, Math.round(cv.height * 0.028));
+    x.font = `800 ${f}px system-ui, sans-serif`;
+    x.textAlign = 'right'; x.textBaseline = 'bottom';
+    x.fillStyle = 'rgba(0,0,0,.25)'; x.fillText(mark, cv.width - f + 2, cv.height - f * 0.8 + 2);
+    x.fillStyle = '#fff'; x.fillText(mark, cv.width - f, cv.height - f * 0.8);
+    return cv;
   }
 
   /* ---------- quadro ---------- */
@@ -610,8 +704,8 @@ export class View {
     this.updateItems();
 
     // esteiras rolando
-    const bspeed = BELT_SPEED * (1 + UPGRADES.esteiras.per * g.up.esteiras);
-    this.beltTex.offset.x = (this.beltTex.offset.x - bspeed * dt) % 1;
+    this.beltTex.offset.x = (this.beltTex.offset.x - g.beltSpeed() * (this.speed || 1) * dt) % 1;
+    this.updateSky(dt);
 
     // ilha subindo do mar numa era nova
     if (this.rise) {
@@ -637,13 +731,13 @@ export class View {
     for (const [id, o] of this.objs) {
       const e = g.ents.get(id);
       if (!e) continue;
-      const working = e.kind === 'mine' ? e.st === 'ok' : e.kind === 'machine' ? e.working : e.kind === 'generator' ? e.on : e.kind === 'splitter' ? e.buf.length > 0 : e.kind === 'turbine';
+      const working = e.kind === 'mine' ? e.st === 'ok' : e.kind === 'machine' ? e.working : e.kind === 'generator' ? e.on : e.kind === 'splitter' ? e.buf.length > 0 : e.kind === 'turbine' || e.kind === 'deco';
       o.w += ((working ? 1 : 0) - o.w) * Math.min(1, dt * 4);
       if (o.pop < 1) {
         o.pop = Math.min(1, o.pop + dt * 3);
         o.g.scale.setScalar(Math.max(0.01, ease.backOut(o.pop)));
       }
-      MD.animateMachine(o.type, o.g, this.t, o.w, o.phase);
+      MD.animateMachine(o.type, o.g, this.t, o.w, o.phase, this.env);
       if (SMOKE[o.type] && o.w > 0.5) {
         o.smokeT -= dt;
         if (o.smokeT <= 0) {
@@ -655,11 +749,11 @@ export class View {
         }
       }
       if (o.rocket && !this.launch) {
-        const k = e.count || 0;
-        const stages = this.launched ? 0 : Math.min(5, Math.ceil(k / 4));
+        // cada 1/5 das peças monta um estágio; depois do lançamento a plataforma começa vazia de novo
+        const stages = this.pendingLaunch ? 5 : Math.min(5, Math.ceil(g.rocketParts * 5 / ROCKET_PARTS));
         o.rocket.forEach((m, i) => { m.visible = i < stages; m.position.y = 0.24; });
       }
-      const mat = this.bubbleFor(e);
+      const mat = this.clean ? null : this.bubbleFor(e); // modo foto: sem balões
       if (mat) {
         if (!o.bubble) { o.bubble = new THREE.Sprite(mat); o.bubble.scale.setScalar(0.5); o.bubble.renderOrder = 10; this.scene.add(o.bubble); }
         o.bubble.material = mat;
@@ -674,6 +768,7 @@ export class View {
       const b = Math.sin((1 - this.hubBounce) * Math.PI) * this.hubBounce * 0.05;
       this.hub.scale.set(1 + b * 0.5, 1 + b, 1 + b * 0.5);
       if (this.hub.userData.flag) this.hub.userData.flag.rotation.y = Math.sin(this.t * 3) * 0.35;
+      if (this.hub.userData.windows) this.hub.userData.windows.material.emissiveIntensity = this.sky.night * 1.6;
     }
 
     // seta de dica
