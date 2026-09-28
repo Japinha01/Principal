@@ -6,6 +6,7 @@
 import {
   N, C, TICK, HUB_R, ERA_RADIUS, DX, DY, ITEMS, ORES, MACHINES, RECIPES, ERAS, MAX_ERA,
   BASE_POWER, UPGRADES, START_COINS, BELT_SPEED, BELT_GAP, MACHINE_CAP, OUT_CAP,
+  WIN_UNLOCK, CONTRACTS, LEGACY, GEARS, ROCKET_PARTS, HUB_COLORS, HUB_PAINT_COST, FIREWORKS_COST,
 } from './data.js';
 
 export const idx = (x, y) => y * N + x;
@@ -132,9 +133,18 @@ export function genWorld(seed) {
 const recipeById = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
 export { recipeById };
 
+// níveis de legado válidos (0 quando não informado)
+export function cleanLegacy(l = {}) {
+  const o = {};
+  for (const k of Object.keys(LEGACY)) o[k] = Math.max(0, Math.min(LEGACY[k].cost.length, (l[k] | 0)));
+  return o;
+}
+
 export class Game {
-  constructor(seed = randomSeed()) {
+  // opts.legacy: bônus permanentes (Engrenagens de Ouro) que valem nesta ilha
+  constructor(seed = randomSeed(), opts = {}) {
     this.seed = String(seed);
+    this.legacy = cleanLegacy(opts.legacy);
     const w = genWorld(this.seed);
     this.landEra = w.landEra;
     this.ore = w.ore;
@@ -142,7 +152,7 @@ export class Game {
     this.era = 1;
     this.goal = 0;
     this.prog = {};                  // progresso do marco atual { item: n }
-    this.coins = START_COINS;
+    this.coins = START_COINS + LEGACY.inicio.per * this.legacy.inicio;
     this.unlocked = new Set(ERAS[1].unlock);
     this.up = { esteiras: 0, maquinas: 0, minas: 0, vendas: 0 };
     this.ents = new Map();
@@ -158,6 +168,15 @@ export class Game {
     this.power = { supply: 0, demand: 0, ratio: 1 };
     this.earnLog = [];               // [tempo, moedas] das entregas do último minuto
     this.revenue = 0;
+    // fim de jogo e extras
+    this.rocketParts = 0;            // peças na plataforma para o próximo foguete
+    this.launches = 0;
+    this.contracts = [];             // pedidos ativos
+    this.contractTimer = 3;          // segundos até aparecer o próximo pedido
+    this.nextContractId = 1;
+    this.rng = mulberry32(hashStr(this.seed + '#pedidos'));
+    this.stats = { coinsEarned: 0, contracts: 0, fastContract: false, wonAt: null };
+    this.hubColor = HUB_COLORS[0];
     this.placeHub();
   }
 
@@ -182,6 +201,9 @@ export class Game {
     return RECIPES.filter((r) => r.m === type && r.era <= this.era && this.unlocked.has(r.m));
   }
   upgradeMult(key) { return 1 + UPGRADES[key].per * this.up[key]; }
+  legacyMult(key) { return 1 + LEGACY[key].per * this.legacy[key]; }
+  costOf(type) { return Math.round(MACHINES[type].cost * (1 - LEGACY.desconto.per * this.legacy.desconto)); }
+  beltSpeed() { return BELT_SPEED * this.upgradeMult('esteiras') * this.legacyMult('esteira'); }
 
   canPlace(type, x, y) {
     const M = MACHINES[type];
@@ -198,7 +220,7 @@ export class Game {
       const o = this.oreAt(x, y);
       if (!o || !M.ores.includes(o)) return { ok: false, why: M.ores.includes('petroleo') ? 'needoil' : 'needore' };
     }
-    if (this.coins < M.cost) return { ok: false, why: 'money' };
+    if (this.coins < this.costOf(type)) return { ok: false, why: 'money' };
     return { ok: true };
   }
 
@@ -211,8 +233,9 @@ export class Game {
       return b;
     }
     const M = MACHINES[type];
-    this.coins -= M.cost;
-    const e = { id: this.nextId++, type, kind: M.kind, x, y, dir };
+    const paid = this.costOf(type);
+    this.coins -= paid;
+    const e = { id: this.nextId++, type, kind: M.kind, x, y, dir, paid };
     this.initEnt(e);
     this.ents.set(e.id, e);
     this.occ[idx(x, y)] = e.id;
@@ -238,7 +261,7 @@ export class Game {
   remove(x, y) {
     const e = this.entAt(x, y);
     if (!e || e.kind === 'hub') return false;
-    this.coins += MACHINES[e.type].cost;
+    this.coins += e.paid ?? this.costOf(e.type);
     this.ents.delete(e.id);
     this.occ[idx(x, y)] = 0;
     this.ev.push({ t: 'remove', id: e.id, type: e.type, x, y });
@@ -320,6 +343,7 @@ export class Game {
         return true;
       case 'pad':
         if (it !== 'peca_foguete') return false;
+        if (this.won && this.rocketParts >= ROCKET_PARTS) return false; // foguete pronto: lance antes
         e.count++;
         this.deliver(it, true);
         return true;
@@ -334,13 +358,18 @@ export class Game {
   }
 
   deliver(it, atPad) {
-    if (atPad) this.pad++;
-    else {
-      const v = Math.round(ITEMS[it].price * this.upgradeMult('vendas'));
+    if (atPad) {
+      this.pad++;
+      this.rocketParts++;
+      if (this.won && this.rocketParts === ROCKET_PARTS) this.ev.push({ t: 'rocketReady' });
+    } else {
+      const v = Math.round(ITEMS[it].price * this.upgradeMult('vendas') * this.legacyMult('venda'));
       this.coins += v;
+      this.stats.coinsEarned += v;
       if (v) this.earnLog.push([this.time, v]);
       this.delivered[it] = (this.delivered[it] || 0) + 1;
       this.ev.push({ t: 'deliver', it, v });
+      this.contractDeliver(it);
     }
     const g = this.goalDef;
     if (!g || this.won) return;
@@ -352,10 +381,12 @@ export class Game {
 
   completeGoal() {
     const g = this.goalDef;
-    this.coins += g.reward;
+    const reward = Math.round(g.reward * this.legacyMult('marco'));
+    this.coins += reward;
+    this.stats.coinsEarned += reward;
     const unlocks = (g.unlock || []).filter((u) => !this.unlocked.has(u));
     unlocks.forEach((u) => this.unlocked.add(u));
-    this.ev.push({ t: 'goal', era: this.era, goal: this.goal, reward: g.reward, unlocks });
+    this.ev.push({ t: 'goal', era: this.era, goal: this.goal, reward, unlocks });
     this.goal++;
     this.prog = {};
     if (this.goal < ERAS[this.era].goals.length) return;
@@ -367,9 +398,122 @@ export class Game {
       eu.forEach((u) => this.unlocked.add(u));
       this.ev.push({ t: 'era', era: this.era, unlocks: eu, ores: E.ores || [] });
     } else {
+      // o primeiro foguete sobe sozinho; libera os enfeites especiais
       this.won = true;
-      this.ev.push({ t: 'victory' });
+      this.stats.wonAt = this.time;
+      this.rocketParts = 0;
+      this.launches++;
+      const wu = WIN_UNLOCK.filter((u) => !this.unlocked.has(u));
+      wu.forEach((u) => this.unlocked.add(u));
+      this.ev.push({ t: 'victory', gears: GEARS.launch, unlocks: wu });
     }
+  }
+
+  /* ---------- modo livre: outros foguetes ---------- */
+  get rocketReady() { return this.won && this.rocketParts >= ROCKET_PARTS; }
+  launchRocket() {
+    if (!this.rocketReady) return false;
+    this.rocketParts -= ROCKET_PARTS;
+    this.launches++;
+    this.ev.push({ t: 'launch', gears: GEARS.launch, n: this.launches });
+    return true;
+  }
+
+  /* ---------- enfeites da Sede e fogos ---------- */
+  paintHub(color) {
+    if (!HUB_COLORS.includes(color) || color === this.hubColor || this.coins < HUB_PAINT_COST) return false;
+    this.coins -= HUB_PAINT_COST;
+    this.hubColor = color;
+    this.ev.push({ t: 'paint', color });
+    return true;
+  }
+  buyFireworks() {
+    if (this.coins < FIREWORKS_COST) return false;
+    this.coins -= FIREWORKS_COST;
+    this.ev.push({ t: 'fireworks' });
+    return true;
+  }
+
+  /* ---------- pedidos ---------- */
+  contractValue() { return Math.max(CONTRACTS.minValue, this.revenue * CONTRACTS.revenueMinutes); }
+  newContract() {
+    const busy = new Set(this.contracts.map((c) => c.it));
+    // só pede o que a fábrica já sabe entregar na Sede
+    let pool = Object.keys(this.delivered).filter((it) => ITEMS[it] && ITEMS[it].price > 0 && !busy.has(it));
+    if (!pool.length) return null;
+    const w = pool.map((it) => Math.sqrt(ITEMS[it].price));
+    let r = this.rng() * w.reduce((a, b) => a + b, 0), it = pool[0];
+    for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) { it = pool[i]; break; } }
+    const price = ITEMS[it].price;
+    const value = this.contractValue();
+    let need = Math.max(5, Math.min(400, Math.round(value / price)));
+    need = need >= 20 ? Math.round(need / 5) * 5 : need;
+    const timed = this.rng() < CONTRACTS.timedChance;
+    const mins = this.revenue > 0 ? (need * price) / this.revenue : 3;
+    const time = timed ? Math.round(Math.max(CONTRACTS.timeMin, Math.min(CONTRACTS.timeMax, mins * 60 * 1.7)) / 10) * 10 : null;
+    const reward = Math.round(need * price * (timed ? CONTRACTS.timedMult : CONTRACTS.mult));
+    const c = { id: this.nextContractId++, it, need, got: 0, reward, timed, time, left: time, gear: timed ? GEARS.timedContract : 0 };
+    this.contracts.push(c);
+    this.ev.push({ t: 'contractNew', id: c.id });
+    return c;
+  }
+  contractDeliver(it) {
+    for (let i = 0; i < this.contracts.length; i++) {
+      const c = this.contracts[i];
+      if (c.it !== it || c.got >= c.need) continue;
+      c.got++;
+      if (c.got >= c.need) {
+        this.contracts.splice(i, 1);
+        this.coins += c.reward;
+        this.stats.coinsEarned += c.reward;
+        this.stats.contracts++;
+        if (c.timed && c.left >= c.time / 2) this.stats.fastContract = true;
+        this.ev.push({ t: 'contract', c });
+        if (this.contractTimer <= 0) this.contractTimer = CONTRACTS.respawn;
+      }
+      return;
+    }
+  }
+  rerollContract(id) {
+    const i = this.contracts.findIndex((c) => c.id === id);
+    if (i < 0 || this.contracts[i].got > 0) return false;
+    const [old] = this.contracts.splice(i, 1);
+    const c = this.newContract();
+    if (!c) { this.contracts.splice(i, 0, old); return false; }
+    // mantém a posição no quadro
+    this.contracts.pop();
+    this.contracts.splice(i, 0, c);
+    return true;
+  }
+  stepContracts(dt) {
+    if (this.era < CONTRACTS.minEra) return;
+    for (let i = this.contracts.length - 1; i >= 0; i--) {
+      const c = this.contracts[i];
+      if (!c.timed) continue;
+      c.left -= dt;
+      if (c.left <= 0) {
+        this.contracts.splice(i, 1);
+        this.ev.push({ t: 'contractFail', c });
+        if (this.contractTimer <= 0) this.contractTimer = CONTRACTS.respawn;
+      }
+    }
+    if (this.contracts.length < CONTRACTS.slots) {
+      this.contractTimer -= dt;
+      if (this.contractTimer <= 0) {
+        this.newContract();
+        // o quadro enche rápido no começo; depois cada vaga leva CONTRACTS.respawn
+        this.contractTimer = this.contracts.length < CONTRACTS.slots ? CONTRACTS.respawn * this.contracts.length / CONTRACTS.slots : 0;
+      }
+    }
+  }
+
+  // garante que tudo que já deveria estar liberado está (saves antigos, conteúdo novo)
+  syncUnlocks() {
+    for (let e = 1; e <= this.era; e++) {
+      ERAS[e].unlock.forEach((u) => this.unlocked.add(u));
+      ERAS[e].goals.forEach((g, i) => { if (e < this.era || i < this.goal || this.won) (g.unlock || []).forEach((u) => this.unlocked.add(u)); });
+    }
+    if (this.won) WIN_UNLOCK.forEach((u) => this.unlocked.add(u));
   }
 
   /* ---------- simulação ---------- */
@@ -423,8 +567,8 @@ export class Game {
     }
     this.power = { supply, demand, ratio };
 
-    const mSpeed = this.upgradeMult('maquinas') * ratio;
-    const mineSpeed = this.upgradeMult('minas') * ratio;
+    const mSpeed = this.upgradeMult('maquinas') * this.legacyMult('fabrica') * ratio;
+    const mineSpeed = this.upgradeMult('minas') * this.legacyMult('mina') * ratio;
 
     for (const e of ents.values()) {
       switch (e.kind) {
@@ -493,7 +637,7 @@ export class Game {
     }
 
     // esteiras por último: itens que acabaram de entrar só andam no próximo passo
-    const bs = BELT_SPEED * this.upgradeMult('esteiras') * dt;
+    const bs = this.beltSpeed() * dt;
     for (const e of ents.values()) {
       if (e.kind !== 'belt' || !e.items.length) continue;
       const its = e.items;
@@ -513,6 +657,7 @@ export class Game {
     let sum = 0;
     for (const [, v] of this.earnLog) sum += v;
     this.revenue = this.time < 60 ? sum * 60 / Math.max(this.time, 10) : sum;
+    this.stepContracts(dt);
   }
 
   /* ---------- dica do próximo passo ---------- */
@@ -590,18 +735,21 @@ export class Game {
       if (e.kind === 'mine') o.ob = e.outb;
       if (e.kind === 'generator') o.f = e.fuel;
       if (e.kind === 'pad') o.c = e.count;
+      if (e.paid !== undefined && e.paid !== MACHINES[e.type].cost) o.p = e.paid;
       ents.push(o);
     }
     return {
       v: 1, seed: this.seed, era: this.era, goal: this.goal, prog: this.prog, coins: this.coins,
       unlocked: [...this.unlocked], up: this.up, produced: this.produced, delivered: this.delivered,
       pad: this.pad, time: Math.round(this.time), won: this.won, revenue: Math.round(this.revenue), ents,
+      rocketParts: this.rocketParts, launches: this.launches, contracts: this.contracts,
+      contractTimer: +this.contractTimer.toFixed(1), nextContractId: this.nextContractId, stats: this.stats, hubColor: this.hubColor,
     };
   }
 
-  static load(o) {
+  static load(o, opts = {}) {
     if (!o || o.v !== 1) throw new Error('save inválido');
-    const g = new Game(o.seed);
+    const g = new Game(o.seed, opts);
     g.era = Math.min(MAX_ERA, Math.max(1, o.era | 0));
     g.goal = o.goal | 0;
     g.prog = o.prog || {};
@@ -613,6 +761,14 @@ export class Game {
     g.pad = o.pad | 0;
     g.time = +o.time || 0;
     g.won = !!o.won;
+    g.launches = o.launches ?? (g.won ? 1 : 0);
+    g.rocketParts = o.rocketParts | 0;
+    g.contracts = Array.isArray(o.contracts) ? o.contracts.filter((c) => c && ITEMS[c.it]) : [];
+    g.contractTimer = +o.contractTimer || 3;
+    g.nextContractId = o.nextContractId || g.contracts.reduce((m, c) => Math.max(m, c.id + 1), 1);
+    Object.assign(g.stats, o.stats || {});
+    if (HUB_COLORS.includes(o.hubColor)) g.hubColor = o.hubColor;
+    g.syncUnlocks();
     for (const s of o.ents || []) {
       if (!MACHINES[s.t] || !inGrid(s.x, s.y) || g.occ[idx(s.x, s.y)]) continue;
       const e = { id: g.nextId++, type: s.t, kind: MACHINES[s.t].kind, x: s.x, y: s.y, dir: s.d & 3 };
@@ -622,6 +778,7 @@ export class Game {
       if (e.kind === 'mine') e.outb = s.ob | 0;
       if (e.kind === 'generator') e.fuel = s.f | 0;
       if (e.kind === 'pad') e.count = s.c | 0;
+      e.paid = s.p ?? MACHINES[s.t].cost;
       g.ents.set(e.id, e);
       g.occ[idx(e.x, e.y)] = e.id;
       g.tree[idx(e.x, e.y)] = 0;

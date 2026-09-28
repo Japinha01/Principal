@@ -4,13 +4,27 @@
 import { Game, randomSeed, recipeById } from './sim.js';
 import { View, makeIcons, wx, wz } from './render.js';
 import { Audio } from './audio.js';
+import { Meta, ACHIEVEMENTS } from './meta.js';
 import * as L from './i18n.js';
-import { MACHINES, BUILD_GROUPS, RECIPES, ERAS, UPGRADES, ORES, C, MAX_ERA, DX, DY } from './data.js';
+import { MACHINES, BUILD_GROUPS, RECIPES, ERAS, UPGRADES, ORES, C, MAX_ERA, DX, DY,
+  LEGACY, WIN_UNLOCK, ROCKET_PARTS, HUB_COLORS, HUB_PAINT_COST, FIREWORKS_COST, CONTRACTS } from './data.js';
 
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = 'f7-save-v2';
+const SET_KEY = 'f7-set';
+let store = null;
+try { store = localStorage; } catch (e) { /* sem storage */ }
+// progresso que atravessa as ilhas (engrenagens, legado, conquistas)
+const meta = new Meta(store);
+// preferências: velocidade do jogo e ciclo dia/noite
+const settings = { speed: 1, cycle: true };
+try { Object.assign(settings, JSON.parse(store.getItem(SET_KEY) || '{}')); } catch (e) { /* ok */ }
+if (![1, 2, 3].includes(settings.speed)) settings.speed = 1;
+function saveSettings() { try { store.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) { /* ok */ } }
+const freshGame = () => new Game(randomSeed(), { legacy: meta.legacy });
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ui = () => L.S().ui;
+const gearsText = (n) => (n === 1 ? ui().gearsGot1 : L.fmt(ui().gearsGot, { n }));
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
 let game = null, view = null, icons = null;
@@ -21,6 +35,8 @@ let newUnlocks = new Set();
 let shownCoins = 0;
 let pointerUntil = 0;
 let lastHintKey = '';
+let photo = false;
+let ordersOpen = !isTouch;
 
 /* quando cada máquina libera (era e se vem de um marco) */
 const UNLOCK_AT = {};
@@ -29,6 +45,11 @@ ERAS.forEach((E, e) => {
   E.unlock.forEach((m) => (UNLOCK_AT[m] ??= { era: e }));
   E.goals.forEach((g) => (g.unlock || []).forEach((m) => (UNLOCK_AT[m] ??= { era: e, goal: true })));
 });
+WIN_UNLOCK.forEach((m) => (UNLOCK_AT[m] ??= { era: MAX_ERA, win: true }));
+const lockLabel = (m) => {
+  const lock = UNLOCK_AT[m] || { era: 1 };
+  return lock.win ? ui().lockedRocket : lock.era > game.era ? L.fmt(ui().lockedEra, { n: lock.era }) : ui().lockedGoal;
+};
 const KEYMAP = {};
 for (const [m, M] of Object.entries(MACHINES)) if (M.key) KEYMAP[M.key.toLowerCase()] = m;
 
@@ -36,10 +57,13 @@ for (const [m, M] of Object.entries(MACHINES)) if (M.key) KEYMAP[M.key.toLowerCa
 function boot() {
   L.setLang(L.detectLang());
   view = new View($('c'));
+  view.setCycle(settings.cycle);
+  view.speed = settings.speed;
+  view.fx.onBoom = () => audio.play('boom');
   icons = makeIcons();
   const saved = readSave();
   game = saved ? safeLoad(saved) : null;
-  view.setGame(game || new Game(randomSeed()), icons);
+  view.setGame(game || freshGame(), icons);
   view.cam.gdist = view.cam.dist = 30;
   applyTexts();
   titleScreen();
@@ -61,7 +85,7 @@ function boot() {
 function readSave() {
   try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; }
 }
-function safeLoad(s) { try { return Game.load(s); } catch (e) { return null; } }
+function safeLoad(s) { try { return Game.load(s, { legacy: meta.legacy }); } catch (e) { return null; } }
 function save(showToast) {
   if (!game) return;
   try {
@@ -83,7 +107,7 @@ function titleScreen() {
     audio.unlock();
     audio.play('click');
     if (canContinue && !confirm(ui().confirmNew)) return;
-    startGame(new Game(randomSeed()), null);
+    startGame(freshGame(), null);
   };
   document.querySelectorAll('#tLang button').forEach((b) => {
     b.onclick = () => { setLanguage(b.dataset.l); titleScreen(); };
@@ -96,6 +120,8 @@ function startGame(g, savedObj) {
   $('title').hidden = true;
   ['top', 'goal', 'bar', 'quick'].forEach((id) => { $(id).hidden = false; });
   playing = true;
+  setPhoto(false);
+  achTimer = 2;
   tool = null; selId = null; newUnlocks = new Set();
   shownCoins = game.coins;
   if (savedObj && savedObj.savedAt && savedObj.revenue > 0) {
@@ -107,6 +133,7 @@ function startGame(g, savedObj) {
   }
   renderBar();
   renderGoal();
+  renderOrders();
   closeInspect();
   save();
 }
@@ -115,7 +142,7 @@ function setLanguage(l) {
   L.setLang(l);
   try { localStorage.setItem('f7-lang', l); } catch (e) { /* ok */ }
   applyTexts();
-  if (playing) { renderBar(); renderGoal(); if (selId) renderInspect(); }
+  if (playing) { renderBar(); renderGoal(); renderOrders(); if (selId) renderInspect(); }
 }
 function applyTexts() {
   document.documentElement.lang = L.lang === 'pt' ? 'pt-BR' : 'en';
@@ -124,11 +151,17 @@ function applyTexts() {
   $('tContinue').textContent = ui().continue;
   $('tNew').textContent = readSave() ? ui().newGame : ui().play;
   $('tCtl').textContent = isTouch ? ui().ctlTouch : ui().ctlDesk;
+  $('qSpeed').title = `${ui().speed} (V)`;
+  $('qPhoto').title = `${ui().photo} (C)`;
+  $('qOrders').title = ui().orders;
+  $('btnMeta').title = ui().gears;
+  $('phTime').title = ui().photoTime;
+  $('phExit').title = ui().exit;
   document.querySelectorAll('#tLang button').forEach((b) => b.classList.toggle('on', b.dataset.l === L.lang));
 }
 
 /* ============================================================ laço */
-let uiTimer = 0, coinAcc = 0, coinTimer = 0;
+let uiTimer = 0, coinAcc = 0, coinTimer = 0, achTimer = 2;
 const keysDown = new Set();
 function tick(dt) {
   if (!playing) {
@@ -136,8 +169,10 @@ function tick(dt) {
     view.frame(dt);
     return;
   }
-  game.update(dt);
+  game.update(dt * settings.speed);
   handleEvents();
+  achTimer -= dt;
+  if (achTimer <= 0) { achTimer = 1; checkAchievements(); }
   // câmera pelo teclado
   const kp = 700 * dt;
   if (keysDown.has('w') || keysDown.has('arrowup')) view.pan(0, kp);
@@ -185,15 +220,72 @@ function handleEvents() {
         save();
         break;
       case 'victory':
+        meta.onEvent(e);
+        e.unlocks.forEach((u) => newUnlocks.add(u));
         closeInspect();
         setTool(null);
         audio.play('launch');
-        setTimeout(() => view.startLaunch(() => { audio.play('victory'); victoryModal(); }), 400);
+        setTimeout(() => view.startLaunch(() => { audio.play('victory'); victoryModal(e); }), 400);
+        renderBar();
         renderGoal();
         save();
         break;
+      case 'launch':
+        meta.onEvent(e);
+        closeInspect();
+        setTool(null);
+        audio.play('launch');
+        view.startLaunch(() => {
+          audio.play('victory');
+          view.fireworks(6);
+          bannerMsg(`🚀 ${L.fmt(ui().launched, { n: e.n })}`, `<span class="gearIco">⚙</span> ${esc(gearsText(e.gears))}`);
+        });
+        renderGoal();
+        save();
+        break;
+      case 'rocketReady':
+        audio.play('unlock');
+        toast('🚀 ' + ui().rocketReady);
+        renderGoal();
+        break;
+      case 'contract': {
+        const gears = meta.onEvent(e);
+        audio.play('contract');
+        toast(`📜 ${L.fmt(ui().orderDone, { v: L.money(e.c.reward) })}${gears ? ` · ${gearsText(gears)}` : ''}`);
+        view.fx.confetti(wx(C), 2.4, wz(C), 40, { power: 5 });
+        renderOrders();
+        break;
+      }
+      case 'contractFail':
+        toast('⏱ ' + L.fmt(ui().orderFail, { it: L.itemName(e.c.it) }), true);
+        renderOrders();
+        break;
+      case 'contractNew':
+        renderOrders();
+        break;
+      case 'fireworks':
+        meta.bump('fireworks');
+        break;
     }
   }
+}
+
+/* ============================================================ conquistas */
+function checkAchievements() {
+  const got = meta.checkAchievements(game);
+  if (!got.length) return;
+  got.slice(0, 3).forEach((a, i) => setTimeout(() => achToast(a), i * 1100));
+  if (got.length > 3) setTimeout(() => toast(L.fmt(ui().achMore, { n: got.length - 3 })), 3300);
+}
+function achToast(a) {
+  const [nm] = L.S().ach[a.id] || [a.id];
+  const t = document.createElement('div');
+  t.className = 'toast panel ach';
+  t.innerHTML = `<span class="ai">${a.ico}</span><div><small>${esc(ui().achGot)}</small><b>${esc(nm)}</b></div><span class="g">+1 ⚙</span>`;
+  $('toasts').appendChild(t);
+  audio.play('ach');
+  setTimeout(() => t.remove(), 3600);
+  while ($('toasts').children.length > 3) $('toasts').firstChild.remove();
 }
 
 /* ============================================================ topo */
@@ -210,11 +302,14 @@ function refreshUI() {
   // barra: o que dá para pagar
   document.querySelectorAll('#bar .bb[data-m]').forEach((b) => {
     const m = b.dataset.m;
-    b.classList.toggle('poor', game.unlocked.has(m) && game.coins < MACHINES[m].cost);
+    b.classList.toggle('poor', game.unlocked.has(m) && game.coins < game.costOf(m));
   });
   const up = Object.keys(UPGRADES).some((k) => { const U = UPGRADES[k], lv = game.up[k]; return lv < U.cost.length && game.era >= U.minEra[lv] && game.coins >= U.cost[lv]; });
   $('btnUp').classList.toggle('glow', up);
+  $('gears').textContent = meta.gears;
+  $('btnMeta').classList.toggle('glow', Object.keys(LEGACY).some((k) => { const c = meta.legacyCost(k); return c != null && meta.gears >= c; }));
   updateGoal();
+  renderOrders();
   if (selId) renderInspect(true);
 }
 
@@ -231,10 +326,9 @@ function renderBar() {
     first = false;
     for (const m of items) {
       const M = MACHINES[m], un = game.unlocked.has(m);
-      const lock = UNLOCK_AT[m] || { era: 1 };
       const cls = ['bb', un ? '' : 'locked', tool === m ? 'sel' : '', newUnlocks.has(m) ? 'new' : ''].join(' ');
-      const label = un ? L.money(M.cost) : (lock.era > game.era ? L.fmt(ui().lockedEra, { n: lock.era }) : ui().lockedGoal);
-      html += `<button class="${cls}" data-m="${m}"><img src="${icons.url[m]}" alt="">${un && !isTouch ? `<span class="key">${M.key}</span>` : ''}<span class="cost">${esc(label)}</span></button>`;
+      const label = un ? L.money(game.costOf(m)) : lockLabel(m);
+      html += `<button class="${cls}" data-m="${m}"><img src="${icons.url[m]}" alt="">${un && !isTouch && M.key ? `<span class="key">${M.key}</span>` : ''}<span class="cost">${esc(label)}</span></button>`;
     }
   });
   bar.innerHTML = html;
@@ -275,7 +369,7 @@ function showTip(b) {
     if (M.out) extra.push(`⚡ +${M.out} MW`);
     if (!game.unlocked.has(m)) {
       const lock = UNLOCK_AT[m] || {};
-      extra.push(lock.era > game.era ? L.fmt(ui().needEra, { n: lock.era }) : ui().lockedGoal);
+      extra.push(lock.win ? ui().lockedRocket : lock.era > game.era ? L.fmt(ui().needEra, { n: lock.era }) : ui().lockedGoal);
     }
     if (extra.length) h += `<div class="muted" style="margin-top:6px;font-weight:600">${extra.join(' · ')}</div>`;
     tip.innerHTML = h;
@@ -305,7 +399,12 @@ function renderGoal() {
   let h = '';
   const dots = ERAS[game.era].goals.map((_, i) => `<i class="${i < game.goal || done ? 'on' : i === game.goal ? 'cur' : ''}"></i>`).join('');
   h += `<div class="eh"><span>${esc(ui().era)} ${game.era} · ${esc(L.S().era[game.era])}</span><span class="dots">${dots}</span></div>`;
-  if (done || !g) {
+  if (done) {
+    h += `<div style="display:flex;justify-content:space-between;align-items:baseline"><h3>🚀 ${esc(ui().freePlay)}</h3><button id="goalToggle">▾</button></div><div class="body">
+      <div class="need" id="rk"><img src="${icons.url.peca_foguete}" alt=""><span class="nm">${esc(ui().nextRocket)}</span><span class="ct"></span><div class="bar"><i></i></div></div>
+      <button class="big launch" id="launchBtn" hidden>🚀 ${esc(ui().launchNow)}</button>
+      <div class="hint rh"><b>💡</b><span>${esc(L.fmt(ui().rocketHint, { n: ROCKET_PARTS }))}</span></div></div>`;
+  } else if (!g) {
     h += `<h3>🚀 ${esc(ui().freePlay)}</h3><div class="body"><div class="hint"><b>💡</b><span>${esc(L.S().hint.hint_free)}</span></div></div>`;
   } else {
     h += `<div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${esc(ui().goal)} ${game.goal + 1} ${esc(ui().of)} ${ERAS[game.era].goals.length}</h3><button id="goalToggle">▾</button></div><div class="body">`;
@@ -323,14 +422,29 @@ function renderGoal() {
   }
   box.innerHTML = h;
   const tg = $('goalToggle');
-  if (tg) tg.onclick = () => { box.classList.toggle('min'); tg.textContent = box.classList.contains('min') ? '▸' : '▾'; };
+  if (tg) {
+    tg.textContent = box.classList.contains('min') ? '▸' : '▾';
+    tg.onclick = () => { box.classList.toggle('min'); tg.textContent = box.classList.contains('min') ? '▸' : '▾'; renderOrders(); };
+  }
+  const lb = $('launchBtn');
+  if (lb) lb.onclick = () => { audio.unlock(); game.launchRocket(); handleEvents(); };
   goalSig = '';
   updateGoal();
 }
 
 function updateGoal() {
   const g = game.goalDef;
-  if (!g || game.won) { view.setPointer(null); return; }
+  if (game.won) {
+    const n = Math.min(game.rocketParts, ROCKET_PARTS), rk = $('rk');
+    if (rk) {
+      rk.querySelector('.ct').textContent = `${n}/${ROCKET_PARTS}`;
+      rk.querySelector('.bar i').style.width = (n / ROCKET_PARTS * 100) + '%';
+      rk.classList.toggle('done', n >= ROCKET_PARTS);
+    }
+    const lb = $('launchBtn');
+    if (lb) lb.hidden = !game.rocketReady || !!view.launch;
+  }
+  if (!g || game.won || photo) { view.setPointer(null); return; }
   document.querySelectorAll('#goal .need').forEach((row) => {
     const it = row.dataset.it;
     if (!g.need[it]) { goalSig = ''; renderGoal(); return; }
@@ -390,13 +504,13 @@ function renderInspect(soft) {
     }
   } else if (e.kind === 'mine') bufs = `<span><img src="${icons.url[e.item]}">${e.outb}</span>`;
   else if (e.kind === 'generator') bufs = `<span><img src="${icons.url.carvao}">${e.fuel}/10</span>`;
-  else if (e.kind === 'pad') bufs = `<span><img src="${icons.url.peca_foguete}">${e.count}</span>`;
+  else if (e.kind === 'pad') bufs = `<span><img src="${icons.url.peca_foguete}">${game.won ? `${Math.min(game.rocketParts, ROCKET_PARTS)}/${ROCKET_PARTS}` : e.count}</span>`;
   else if (e.kind === 'hub') bufs = `<span>+${L.money(game.revenue)}${ui().perMin}</span>`;
   const sig = [selId, stKey, bufs, e.recipe, L.lang].join('|');
   if (soft && sig === inspectSig) return;
   inspectSig = sig;
   let h = `<div class="h"><img src="${icons.url[e.type]}"><div><h3>${esc(L.mName(e.type))}</h3>`;
-  if (e.kind !== 'belt' && e.kind !== 'hub' && e.kind !== 'cross') h += `<span class="st ${bad ? 'bad' : stKey === 'ok' ? '' : 'meh'}">${esc(L.S().st[stKey] || '')}</span>`;
+  if (e.kind !== 'belt' && e.kind !== 'hub' && e.kind !== 'cross' && e.kind !== 'deco') h += `<span class="st ${bad ? 'bad' : stKey === 'ok' ? '' : 'meh'}">${esc(L.S().st[stKey] || '')}</span>`;
   h += '</div></div>';
   h += `<p class="desc" style="margin:8px 0 0;font-size:14px;color:var(--ink2)">${esc(L.mDesc(e.type))}</p>`;
   if (bufs) h += `<div class="bufs">${bufs}</div>`;
@@ -434,9 +548,12 @@ function toast(msg, err) {
 }
 let bannerTimer = 0;
 function banner(e) {
-  const b = $('banner');
   const un = e.unlocks.map((m) => `<img src="${icons.url[m]}" title="${esc(L.mName(m))}"> ${esc(L.mName(m))}`).join(' ');
-  b.innerHTML = `<h2>⭐ ${esc(ui().goalDone)}</h2><div class="row">${e.reward ? `<i class="coin"></i>+${L.money(e.reward)}` : ''}${un ? ` · ${esc(ui().unlocked)}: ${un}` : ''}</div>`;
+  bannerMsg(`⭐ ${ui().goalDone}`, `${e.reward ? `<i class="coin"></i>+${L.money(e.reward)}` : ''}${un ? ` · ${esc(ui().unlocked)}: ${un}` : ''}`);
+}
+function bannerMsg(title, rowHtml) {
+  const b = $('banner');
+  b.innerHTML = `<h2>${esc(title)}</h2><div class="row">${rowHtml}</div>`;
   b.hidden = false;
   b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
   clearTimeout(bannerTimer);
@@ -455,6 +572,7 @@ function floatText(txt, x, y, z) {
 }
 function modal(html, onOpen) {
   $('modalCard').innerHTML = html;
+  $('modalCard').scrollTop = 0; // janela nova começa do topo
   $('modal').hidden = false;
   onOpen && onOpen($('modalCard'));
 }
@@ -473,15 +591,19 @@ function eraModal(e) {
   });
 }
 
-function victoryModal() {
+function victoryModal(e = {}) {
   const made = Object.values(game.produced).reduce((a, b) => a + b, 0);
   const deliv = Object.values(game.delivered).reduce((a, b) => a + b, 0);
   const mins = Math.round(game.time / 60);
   const tm = mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins} min`;
   modal(`<div class="kick">${esc(ui().launchTitle)}</div><h2>🚀 ${esc(ui().victoryTitle)}</h2><p>${esc(ui().victoryText)}</p>
     <div class="stats"><div><b>${tm}</b>${esc(ui().playTime)}</div><div><b>${made.toLocaleString()}</b>${esc(ui().totalMade)}</div><div><b>${deliv.toLocaleString()}</b>${esc(ui().totalEarned)}</div></div>
+    ${e.gears ? `<div class="ghead"><span class="gearIco">⚙</span>${esc(gearsText(e.gears))}</div>` : ''}
+    ${(e.unlocks || []).length ? `<p><b>${esc(ui().unlocked)}</b></p><div class="unl">${e.unlocks.map((m) => `<div><img src="${icons.url[m]}">${esc(L.mName(m))}</div>`).join('')}</div>` : ''}
+    <p>${esc(ui().rocketHint.replace('{n}', ROCKET_PARTS))}</p>
     <button class="big" id="mOk">${esc(ui().keepPlaying)}</button>`, (c) => {
     view.fx.confetti(wx(C), 3, wz(C), 150, { power: 8 });
+    view.fireworks(8);
     c.querySelector('#mOk').onclick = () => { closeModal(); save(); };
   });
 }
@@ -518,6 +640,11 @@ function menuModal() {
     <div class="line"><span>${esc(ui().language)}</span><div class="seg" id="mLang"><button data-l="pt" class="${L.lang === 'pt' ? 'on' : ''}">PT</button><button data-l="en" class="${L.lang === 'en' ? 'on' : ''}">EN</button></div></div>
     <div class="line"><span>${esc(ui().sound)}</span>${seg('mSfx', esc(ui().on), esc(ui().off), audio.sfxOn)}</div>
     <div class="line"><span>${esc(ui().music)}</span>${seg('mMus', esc(ui().on), esc(ui().off), audio.musicOn)}</div>
+    <div class="line"><span>🌙 ${esc(ui().dayNight)}</span>${seg('mCyc', esc(ui().on), esc(ui().off), settings.cycle)}</div>
+    <button class="wide" id="mCust">🎨 ${esc(ui().customize)}</button>
+    <button class="wide" id="mAch">🏆 ${esc(ui().achievements)} · ${meta.d.ach.length}/${ACHIEVEMENTS.length}</button>
+    <button class="wide" id="mStats">📊 ${esc(ui().stats)}</button>
+    <button class="wide" id="mPhoto">📷 ${esc(ui().photo)}</button>
     <button class="wide" id="mSave">💾 ${esc(ui().save)}</button>
     <button class="wide" id="mExp">📋 ${esc(ui().export)}</button>
     <button class="wide" id="mImp">📥 ${esc(ui().import)}</button>
@@ -528,17 +655,24 @@ function menuModal() {
     c.querySelectorAll('#mLang button').forEach((b) => { b.onclick = () => { setLanguage(b.dataset.l); menuModal(); }; });
     c.querySelectorAll('#mSfx button').forEach((b) => { b.onclick = () => { audio.setSfx(b.dataset.v === '1'); menuModal(); }; });
     c.querySelectorAll('#mMus button').forEach((b) => { b.onclick = () => { audio.setMusic(b.dataset.v === '1'); menuModal(); }; });
+    c.querySelectorAll('#mCyc button').forEach((b) => { b.onclick = () => { settings.cycle = b.dataset.v === '1'; view.setCycle(settings.cycle); saveSettings(); menuModal(); }; });
+    c.querySelector('#mCust').onclick = () => { audio.play('click'); customizeModal(); };
+    c.querySelector('#mAch').onclick = () => { audio.play('click'); metaModal('ach'); };
+    c.querySelector('#mStats').onclick = () => { audio.play('click'); metaModal('stats'); };
+    c.querySelector('#mPhoto').onclick = () => { closeModal(); setPhoto(true); };
     c.querySelector('#mSave').onclick = () => { save(true); };
     c.querySelector('#mExp').onclick = async () => {
       save();
-      const txt = btoa(unescape(encodeURIComponent(JSON.stringify(game.serialize()))));
+      const txt = btoa(unescape(encodeURIComponent(JSON.stringify({ ...game.serialize(), _meta: meta.d }))));
       try { await navigator.clipboard.writeText(txt); toast(ui().exported); } catch (e) { prompt(ui().exported, txt); }
     };
     c.querySelector('#mImp').onclick = () => {
       const txt = prompt(ui().importPrompt);
       if (!txt) return;
       try {
-        const g = Game.load(JSON.parse(decodeURIComponent(escape(atob(txt.trim())))));
+        const o = JSON.parse(decodeURIComponent(escape(atob(txt.trim()))));
+        if (o._meta) { meta.load(o._meta); meta.save(); }
+        const g = Game.load(o, { legacy: meta.legacy });
         closeModal();
         startGame(g, null);
       } catch (e) { toast(ui().importBad, true); }
@@ -546,10 +680,196 @@ function menuModal() {
     c.querySelector('#mNew').onclick = () => {
       if (!confirm(ui().confirmNew)) return;
       closeModal();
-      startGame(new Game(randomSeed()), null);
+      startGame(freshGame(), null);
     };
     c.querySelector('#mOk').onclick = closeModal;
   });
+}
+
+/* ============================================================ legado, conquistas e estatísticas */
+function metaModal(tab = 'legacy') {
+  const T = { legacy: '⚙ ' + ui().legacy, ach: '🏆 ' + ui().achievements, stats: '📊 ' + ui().stats };
+  let h = `<div class="seg tabs">${Object.keys(T).map((k) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${esc(T[k])}</button>`).join('')}</div>`;
+  if (tab === 'legacy') {
+    h += `<div class="ghead"><span class="gearIco">⚙</span>${meta.gears} <span style="font-size:15px;color:var(--ink2)">${esc(ui().gearsShort)}</span></div>
+      <p>${esc(ui().legacyText)}</p><p style="font-size:13px">${esc(ui().legacyHow)}</p><div class="ups">`;
+    for (const k of Object.keys(LEGACY)) {
+      const lv = meta.legacy[k], max = LEGACY[k].cost.length, cost = meta.legacyCost(k);
+      const [nm, desc] = L.S().legacy[k];
+      h += `<div class="up lg"><h4>${esc(nm)}</h4><p>${esc(desc)}</p><div class="pips">${LEGACY[k].cost.map((_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div>`;
+      h += `<button data-k="${k}" ${cost == null || meta.gears < cost ? 'disabled' : ''}>${lv >= max ? esc(ui().max) : `${esc(ui().buy)} · ⚙ ${cost}`}</button></div>`;
+    }
+    h += `</div><div class="island"><h4>🏝️ ${esc(ui().newIsland)}</h4><p>${esc(game.won ? ui().newIslandText : ui().newIslandLocked)}</p>
+      <button class="big" id="mIsland" ${game.won ? '' : 'disabled'}>🏝️ ${esc(ui().newIsland)}</button></div>`;
+  } else if (tab === 'ach') {
+    h += `<p><b>${meta.d.ach.length}/${ACHIEVEMENTS.length}</b></p><div class="achs">`;
+    for (const a of ACHIEVEMENTS) {
+      const got = meta.d.ach.includes(a.id), [nm, desc] = L.S().ach[a.id] || [a.id, ''];
+      h += `<div class="${got ? '' : 'no'}"><span class="ai">${a.ico}</span><span><b>${esc(nm)}</b><small>${esc(desc)}</small></span></div>`;
+    }
+    h += '</div>';
+  } else {
+    const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+    const mins = Math.floor(game.time / 60);
+    const tm = mins >= 60 ? `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}` : `${mins} min`;
+    let machines = 0;
+    for (const e of game.ents.values()) if (!['belt', 'hub', 'deco'].includes(e.kind)) machines++;
+    const top = Object.entries(game.delivered).sort((a, b) => b[1] - a[1]).slice(0, 4)
+      .map(([it, n]) => `<i><img src="${icons.url[it]}" title="${esc(L.itemName(it))}">${n.toLocaleString()}</i>`).join('');
+    const row = (k, v) => `<div><span>${esc(ui()[k])}</span><b>${v}</b></div>`;
+    h += `<div class="slist">
+      ${row('st_time', tm)}${row('st_made', sum(game.produced).toLocaleString())}${row('st_deliv', sum(game.delivered).toLocaleString())}
+      ${row('st_earned', L.money(game.stats.coinsEarned))}${row('st_rev', L.money(game.revenue) + ui().perMin)}
+      ${row('st_machines', machines)}${row('st_belts', game.count('esteira'))}
+      ${row('st_orders', `${game.stats.contracts} / ${meta.d.contracts}`)}${row('st_rockets', `${game.launches} / ${meta.d.launches}`)}
+      ${row('st_islands', meta.d.islands)}${row('st_gears', meta.d.gearsEarned)}${row('st_ach', `${meta.d.ach.length}/${ACHIEVEMENTS.length}`)}
+      ${top ? `<div><span>${esc(ui().st_top)}</span><span class="top">${top}</span></div>` : ''}
+    </div>`;
+  }
+  h += `<button class="big sec" id="mOk">${esc(ui().close)}</button>`;
+  modal(h, (c) => {
+    c.querySelectorAll('.tabs button').forEach((b) => { b.onclick = () => { audio.play('click'); metaModal(b.dataset.tab); }; });
+    c.querySelectorAll('.up.lg button').forEach((b) => {
+      b.onclick = () => {
+        if (!meta.buyLegacy(b.dataset.k)) return;
+        game.legacy = { ...meta.legacy }; // vale já nesta ilha
+        audio.play('unlock');
+        view.fx.confetti(wx(C), 2.4, wz(C), 40, { colors: ['#ffc400', '#fff3a8', '#ffffff'] });
+        renderBar();
+        refreshUI();
+        metaModal('legacy');
+      };
+    });
+    const isl = c.querySelector('#mIsland');
+    if (isl) isl.onclick = () => {
+      if (!confirm(ui().confirmIsland)) return;
+      meta.newIsland();
+      closeModal();
+      startGame(freshGame(), null);
+    };
+    c.querySelector('#mOk').onclick = closeModal;
+  });
+}
+
+function customizeModal() {
+  const poor = game.coins < HUB_PAINT_COST;
+  modal(`<h2>🎨 ${esc(ui().customize)}</h2><div class="cust">
+    <h4>${esc(ui().hubColor)} <span class="pill">${L.money(HUB_PAINT_COST)}</span></h4>
+    <div class="swatches">${HUB_COLORS.map((c) => `<button data-c="${c}" style="background:${c}" class="${c === game.hubColor ? 'on' : ''}" ${poor && c !== game.hubColor ? 'disabled' : ''}></button>`).join('')}</div>
+    <h4>🎆 ${esc(ui().fireworks)} <span class="pill">${L.money(FIREWORKS_COST)}</span></h4>
+    <p>${esc(ui().fireworksText)}</p>
+    <button class="big" id="mFire" ${game.coins < FIREWORKS_COST ? 'disabled' : ''}>🎆 ${esc(ui().fireworks)}</button>
+  </div><button class="big sec" id="mOk">${esc(ui().close)}</button>`, (c) => {
+    c.querySelectorAll('.swatches button').forEach((b) => {
+      b.onclick = () => { if (game.paintHub(b.dataset.c)) { audio.play('place'); handleEvents(); customizeModal(); } };
+    });
+    c.querySelector('#mFire').onclick = () => {
+      if (!game.buyFireworks()) return;
+      handleEvents();
+      closeModal();
+      view.focus(wx(C), wz(C), Math.max(view.cam.gdist, 24));
+    };
+    c.querySelector('#mOk').onclick = closeModal;
+  });
+}
+
+/* ============================================================ pedidos */
+let ordersSig = '';
+function renderOrders() {
+  const box = $('orders');
+  const avail = playing && game.era >= CONTRACTS.minEra;
+  const qo = $('qOrders');
+  qo.hidden = !avail || !isTouch;
+  $('ordBadge').textContent = avail && game.contracts.length ? game.contracts.length : '';
+  if (!avail || photo || !ordersOpen) { box.hidden = true; ordersSig = ''; return; }
+  const goal = $('goal').getBoundingClientRect();
+  box.style.top = Math.round(goal.bottom + (isTouch ? 6 : 10)) + 'px';
+  box.style.maxHeight = `calc(100vh - ${Math.round(goal.bottom + 130)}px)`;
+  const cs = game.contracts;
+  const waiting = cs.length < CONTRACTS.slots;
+  const nothing = !Object.keys(game.delivered).length;
+  const sig = [cs.map((c) => c.id + (c.got ? '+' : '')).join(','), waiting, nothing, L.lang, box.classList.contains('min')].join('|');
+  if (sig !== ordersSig) {
+    ordersSig = sig;
+    let h = `<div class="oh"><span>📜 ${esc(ui().orders)} · ${cs.length}/${CONTRACTS.slots}</span><button id="ordMin">${box.classList.contains('min') ? '▸' : '▾'}</button></div><div class="ob">`;
+    for (const c of cs) {
+      h += `<div class="ord${c.timed ? ' timed' : ''}" data-id="${c.id}"><img src="${icons.url[c.it]}" alt="">
+        <div><div class="on"><span>${esc(L.itemName(c.it))}</span><span class="ct"></span></div><div class="bar"><i></i></div></div>
+        <div class="or"><span class="pill">${L.money(c.reward)}</span>${c.gear ? `<span class="pill g">+${c.gear} ⚙</span>` : ''}${c.timed ? '<span class="tm"></span>' : ''}</div>
+        ${c.got === 0 ? `<button class="rr" title="${esc(ui().reroll)}">↻</button>` : ''}</div>`;
+    }
+    if (waiting) h += `<div class="onext">${nothing ? esc(ui().ordersWait) : ''}</div>`;
+    h += '</div>';
+    box.innerHTML = h;
+    box.hidden = false;
+    $('ordMin').onclick = () => { box.classList.toggle('min'); renderOrders(); };
+    box.querySelectorAll('.rr').forEach((b) => {
+      b.onclick = () => {
+        const id = +b.closest('.ord').dataset.id;
+        if (game.rerollContract(id)) { audio.play('rotate'); renderOrders(); } else audio.play('error');
+      };
+    });
+  }
+  // números que mudam o tempo todo: atualiza no lugar
+  for (const c of cs) {
+    const row = box.querySelector(`.ord[data-id="${c.id}"]`);
+    if (!row) continue;
+    row.querySelector('.ct').textContent = `${c.got}/${c.need}`;
+    row.querySelector('.bar i').style.width = (c.got / c.need * 100) + '%';
+    const tm = row.querySelector('.tm');
+    if (tm) {
+      const s = Math.max(0, Math.ceil(c.left));
+      tm.textContent = `⏱ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      tm.classList.toggle('ok', s > 20);
+    }
+  }
+  const nx = box.querySelector('.onext');
+  if (nx && !nothing) nx.textContent = game.contractTimer > 0 ? L.fmt(ui().orderNext, { s: Math.ceil(game.contractTimer / settings.speed) }) : '';
+}
+
+/* ============================================================ velocidade e modo foto */
+function setSpeed(v) {
+  settings.speed = v;
+  view.speed = v;
+  saveSettings();
+  $('qSpeed').textContent = v + '×';
+  $('qSpeed').classList.toggle('fast', v > 1);
+}
+function setPhoto(on) {
+  photo = on;
+  document.body.classList.toggle('photo', on);
+  view.clean = on;
+  if (on) {
+    setTool(null);
+    closeInspect();
+    view.setPointer(null);
+    view.setGhost(null);
+    $('cursorTip').hidden = true;
+  } else view.sky.manual = false;
+  renderOrders();
+}
+function takePhoto() {
+  audio.play('shutter');
+  const f = $('flash');
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+  const cv = view.snapshot();
+  meta.bump('photos');
+  cv.toBlob(async (b) => {
+    if (!b) return;
+    const name = `fundicao7-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`;
+    const file = typeof File === 'function' ? new File([b], name, { type: 'image/png' }) : null;
+    if (isTouch && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Fundição 7' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('📸 ' + ui().photoSaved);
+  }, 'image/png');
 }
 
 /* ============================================================ controles */
@@ -616,7 +936,7 @@ function updateHover(sx, sy) {
   const t = view.pick(sx, sy);
   hover = t ? { ...t, sx, sy } : { sx, sy };
   const ct = $('cursorTip');
-  if (!t || !playing) { view.setGhost(null); ct.hidden = true; return; }
+  if (!t || !playing || photo) { view.setGhost(null); ct.hidden = true; return; }
   if (drag && drag.mode === 'belt') return;
   if (tool === 'remove') {
     const e = game.entAt(t.x, t.y);
@@ -662,6 +982,7 @@ function bindInput() {
     if (pointers.size > 2) return;
     const t = view.pick(ev.clientX, ev.clientY);
     const base = { sx: ev.clientX, sy: ev.clientY, lx: ev.clientX, ly: ev.clientY, t, moved: false };
+    if (photo) { drag = { ...base, mode: 'pan' }; view.grabStart(ev.clientX, ev.clientY); return; }
     if (ev.button === 1 || (ev.button === 0 && spaceDown)) { drag = { ...base, mode: 'pan' }; view.grabStart(ev.clientX, ev.clientY); }
     else if (ev.button === 2) {
       if (tool) { setTool(null); drag = null; return; }
@@ -737,7 +1058,17 @@ function bindInput() {
     if (!$('modal').hidden) { if (k === 'escape') closeModal(); return; }
     if (k === ' ') { spaceDown = true; ev.preventDefault(); return; }
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keysDown.add(k); ev.preventDefault(); return; }
+    if (photo) {
+      if (k === 'escape' || k === 'c') setPhoto(false);
+      else if (k === 'q') view.turn(-1);
+      else if (k === 'e') view.turn(1);
+      else if (k === 'enter' || k === 'f') takePhoto();
+      else if (k === 't') view.nextTimeOfDay();
+      return;
+    }
     if (k === 'escape') { if (tool) setTool(null); else closeInspect(); return; }
+    if (k === 'v') { setSpeed(settings.speed % 3 + 1); audio.play('click'); return; }
+    if (k === 'c') { setPhoto(true); return; }
     if (k === 'r') { rotateAction(ev.shiftKey ? -1 : 1); return; }
     if (k === 'q') { view.turn(-1); return; }
     if (k === 'e') { view.turn(1); return; }
@@ -762,6 +1093,14 @@ function bindInput() {
   $('qCamR').onclick = () => view.turn(1);
   $('btnUp').onclick = () => { audio.unlock(); audio.play('click'); upgradesModal(); };
   $('btnMenu').onclick = () => { audio.unlock(); audio.play('click'); menuModal(); };
+  $('btnMeta').onclick = () => { audio.unlock(); audio.play('click'); metaModal('legacy'); };
+  $('qSpeed').onclick = () => { audio.play('click'); setSpeed(settings.speed % 3 + 1); };
+  $('qPhoto').onclick = () => { audio.play('click'); setPhoto(true); };
+  $('qOrders').onclick = () => { audio.play('click'); ordersOpen = !ordersOpen; renderOrders(); };
+  $('phShot').onclick = takePhoto;
+  $('phTime').onclick = () => { audio.play('click'); view.nextTimeOfDay(); };
+  $('phExit').onclick = () => setPhoto(false);
+  setSpeed(settings.speed);
 }
 
 function rotateAction(s) {
@@ -787,4 +1126,4 @@ function removeAt(t, quiet) {
 
 boot();
 // acesso para testes automatizados e depuração no console
-window.F7 = { get game() { return game; }, get view() { return view; }, setTool: (t) => setTool(t), get tool() { return tool; } };
+window.F7 = { get game() { return game; }, get view() { return view; }, setTool: (t) => setTool(t), get tool() { return tool; }, meta, settings, setPhoto, setSpeed };
