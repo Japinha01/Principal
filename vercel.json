@@ -9,6 +9,16 @@
       "source": "/loja/:path*",
       "destination": "https://loja.japax01.com.br/:path*",
       "permanent": false
+    },
+    {
+      "source": "/guilda",
+      "destination": "https://guilda.japax01.com.br",
+      "permanent": false
+    },
+    {
+      "source": "/guilda/:path*",
+      "destination": "https://guilda.japax01.com.br/:path*",
+      "permanent": false
     }
   ]
 }
