@@ -654,6 +654,7 @@ function bindInput() {
       // dois dedos: cancela o que estava fazendo e vira pan + zoom
       const [a, b] = [...pointers.values()];
       pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      view.grabStart(pinch.cx, pinch.cy);
       drag = null;
       view.setGhostPath(null);
       return;
@@ -661,14 +662,14 @@ function bindInput() {
     if (pointers.size > 2) return;
     const t = view.pick(ev.clientX, ev.clientY);
     const base = { sx: ev.clientX, sy: ev.clientY, lx: ev.clientX, ly: ev.clientY, t, moved: false };
-    if (ev.button === 1 || (ev.button === 0 && spaceDown)) drag = { ...base, mode: 'pan' };
+    if (ev.button === 1 || (ev.button === 0 && spaceDown)) { drag = { ...base, mode: 'pan' }; view.grabStart(ev.clientX, ev.clientY); }
     else if (ev.button === 2) {
       if (tool) { setTool(null); drag = null; return; }
       drag = { ...base, mode: 'remove' };
       if (t) removeAt(t);
     } else if (tool === 'esteira') drag = { ...base, mode: 'belt', start: t, axis: null };
     else if (tool === 'remove') { drag = { ...base, mode: 'remove' }; if (t) removeAt(t); }
-    else drag = { ...base, mode: 'tap' };
+    else { drag = { ...base, mode: 'tap' }; view.grabStart(ev.clientX, ev.clientY); }
   });
 
   cv.addEventListener('pointermove', (ev) => {
@@ -677,7 +678,7 @@ function bindInput() {
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
       view.zoom(pinch.d / Math.max(1, d));
-      view.pan(cx - pinch.cx, cy - pinch.cy);
+      view.grabMove(cx, cy);
       pinch = { d, cx, cy };
       return;
     }
@@ -686,7 +687,7 @@ function bindInput() {
     if (dist > (ev.pointerType === 'mouse' ? 5 : 12)) drag.moved = true;
     if (drag.mode === 'pan' || (drag.mode === 'tap' && drag.moved)) {
       drag.mode = 'pan';
-      view.pan(ev.clientX - drag.lx, ev.clientY - drag.ly);
+      view.grabMove(ev.clientX, ev.clientY);
     } else if (drag.mode === 'belt' && drag.start) {
       const t = view.pick(ev.clientX, ev.clientY);
       if (t) {
@@ -706,6 +707,7 @@ function bindInput() {
 
   const up = (ev) => {
     pointers.delete(ev.pointerId);
+    view.grabEnd();
     if (pinch) { if (pointers.size < 2) pinch = null; drag = null; return; }
     if (!drag) return;
     const d = drag;

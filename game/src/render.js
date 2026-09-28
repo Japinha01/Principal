@@ -481,12 +481,43 @@ export class View {
   }
 
   /* ---------- câmera ---------- */
+  // pan por pixels (teclado): o mapa anda junto com o "arrasto", na hora, sem deslizar
   pan(dx, dy) {
-    const c = this.cam, k = c.dist * 0.0016 * (this.camera.fov / 32);
-    const sa = Math.sin(c.az), ca = Math.cos(c.az);
-    c.gtx -= (dx * ca - dy * sa * 1.3) * k;
-    c.gtz -= (-dx * sa - dy * ca * 1.3) * k;
+    const c = this.cam;
+    const k = 2 * c.dist * Math.tan(this.camera.fov * Math.PI / 360) / innerHeight;
+    const sa = Math.sin(c.az), ca = Math.cos(c.az), v = 1 / Math.sin(c.el);
+    c.gtx += (-ca * dx - sa * dy * v) * k;
+    c.gtz += (sa * dx - ca * dy * v) * k;
     this.clampTarget();
+    c.tx = c.gtx; c.tz = c.gtz;
+  }
+  // arrastar com o mouse/dedo: o ponto do chão que você pegou fica preso embaixo do cursor
+  groundAt(sx, sy) {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    const v = new THREE.Vector3(((sx - r.left) / r.width) * 2 - 1, -((sy - r.top) / r.height) * 2 + 1, 0.5).unproject(this.camera);
+    const o = this.camera.position, d = v.sub(o).normalize();
+    if (d.y >= -0.02) return null;
+    const t = -o.y / d.y;
+    return { x: o.x + d.x * t, z: o.z + d.z * t };
+  }
+  grabStart(sx, sy) { this.grab = this.groundAt(sx, sy); }
+  grabMove(sx, sy) {
+    if (!this.grab) { this.grabStart(sx, sy); return; }
+    const p = this.groundAt(sx, sy);
+    if (!p) return;
+    const c = this.cam;
+    c.gtx = c.tx + this.grab.x - p.x;
+    c.gtz = c.tz + this.grab.z - p.z;
+    this.clampTarget();
+    c.tx = c.gtx; c.tz = c.gtz;
+    this.applyCamera();
+  }
+  grabEnd() { this.grab = null; }
+  applyCamera(sh = 0) {
+    const c = this.cam, ce = Math.cos(c.el);
+    this.camera.position.set(c.tx + Math.sin(c.az) * ce * c.dist + sh, c.ty + Math.sin(c.el) * c.dist + sh, c.tz + Math.cos(c.az) * ce * c.dist);
+    this.camera.lookAt(c.tx, c.ty, c.tz);
+    this.camera.updateMatrixWorld();
   }
   zoom(f) { this.cam.gdist = Math.max(7, Math.min(60, this.cam.gdist * f)); }
   turn(s) { this.cam.gaz += s * Math.PI / 2; }
@@ -647,10 +678,7 @@ export class View {
     const c = this.cam, k = 1 - Math.pow(0.0015, dt);
     c.tx += (c.gtx - c.tx) * k; c.tz += (c.gtz - c.tz) * k; c.ty += (c.gty - c.ty) * k * 0.7;
     c.dist += (c.gdist - c.dist) * k; c.az += (c.gaz - c.az) * k;
-    const sh = c.shake ? (Math.random() - 0.5) * c.shake : 0;
-    const ce = Math.cos(c.el);
-    this.camera.position.set(c.tx + Math.sin(c.az) * ce * c.dist + sh, c.ty + Math.sin(c.el) * c.dist + sh, c.tz + Math.cos(c.az) * ce * c.dist);
-    this.camera.lookAt(c.tx, c.ty, c.tz);
+    this.applyCamera(c.shake ? (Math.random() - 0.5) * c.shake : 0);
 
     // sombra acompanha a câmera
     const ext = Math.min(52, Math.max(12, c.dist * 1.5));
