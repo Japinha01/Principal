@@ -1,0 +1,48 @@
+{
+  "name": "balsa-furada",
+  "productName": "Balsa Furada",
+  "version": "1.0.0",
+  "description": "Co-op rio abaixo com os amigos: pilote, bombeie, tape furos, pesque tesouros e pague o Barqueiro.",
+  "main": "main.js",
+  "private": true,
+  "author": "japax01",
+  "repository": "github:Japinha01/Principal",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable --publish never",
+    "dist:zip": "electron-builder --win zip --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "br.com.japax01.balsafurada",
+    "productName": "Balsa Furada",
+    "files": [
+      "main.js",
+      "jogo/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Balsa Furada",
+      "artifactName": "BalsaFurada-${version}-instalador.${ext}"
+    },
+    "portable": {
+      "artifactName": "BalsaFurada-${version}-portatil.${ext}"
+    }
+  }
+}

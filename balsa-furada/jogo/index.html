@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Balsa Furada</title>
+<meta name="description" content="Co-op de 1 a 6 amigos numa balsa rio abaixo: pilote, bombeie, tape furos, pesque tesouros e pague o Barqueiro.">
+<link rel="icon" href="./icon.png" type="image/png">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script src="./vendor/peerjs.min.js"></script>
+<style>
+@font-face{font-family:'Fredoka';src:url(./vendor/fredoka.woff2) format('woff2');font-weight:300 700;font-display:swap}
+:root{
+  --ink:#27304a; --ink2:#5b6480; --paper:#fffdf7; --line:#e8e1d2;
+  --yellow:#ffd23f; --red:#ff5a4e; --blue:#4d8dff; --green:#3ccf7a; --purple:#8a7dff; --orange:#ff9f1a; --wood:#a86f3c;
+  --shadow:0 5px 0 rgba(39,48,74,.18), 0 12px 24px rgba(39,48,74,.22);
+  --font:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#27304a;font-family:var(--font);color:var(--ink);user-select:none;-webkit-user-select:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+[hidden]{display:none!important}
+.panel{background:var(--paper);border-radius:20px;box-shadow:var(--shadow);border:3px solid #fff}
+.btn{border:0;border-radius:14px;padding:12px 20px;font-weight:700;font-size:18px;background:var(--yellow);box-shadow:0 4px 0 rgba(0,0,0,.18);transition:transform .08s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.azul{background:var(--blue);color:#fff}
+.btn.verde{background:var(--green);color:#fff}
+.btn.verm{background:var(--red);color:#fff}
+.btn.cinza{background:#e7e2d6}
+.btn.peq{padding:8px 12px;font-size:15px;border-radius:11px}
+.coin{display:inline-block;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3a8,#ffc400 55%,#e0a100);box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);vertical-align:-3px;margin-right:4px}
+kbd{display:inline-block;min-width:24px;padding:1px 7px;border-radius:7px;background:#27304a;color:#fff;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.3);font-family:var(--font)}
+
+/* ---------- menu ---------- */
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#7fcaf5,#bfe9ff 60%,#3aa7c9 60.2%,#2f8fb3);z-index:20;overflow:auto;padding:20px}
+#menu .onda{position:absolute;left:0;right:0;top:60%;height:14px;background:repeating-linear-gradient(90deg,#ffffff88 0 20px,transparent 20px 44px);animation:onda 3s linear infinite}
+@keyframes onda{to{background-position:44px 0}}
+#menuCard{position:relative;width:min(520px,100%);padding:26px 28px}
+#logo{text-align:center;margin:-6px 0 4px}
+#logo h1{margin:0;font-size:54px;line-height:1;letter-spacing:.02em;color:var(--wood);text-shadow:0 4px 0 #6b4524}
+#logo h1 b{color:var(--red);text-shadow:0 4px 0 #a8322a}
+#logo p{margin:8px 0 0;color:var(--ink2);font-weight:600}
+.campo{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.campo label{font-weight:700;font-size:14px;color:var(--ink2)}
+.campo input[type=text]{border:3px solid var(--line);border-radius:12px;padding:10px 14px;font-size:18px;font-weight:600;background:#fff;outline:none}
+.campo input[type=text]:focus{border-color:var(--blue)}
+#cores{display:flex;gap:8px;flex-wrap:wrap}
+#cores button{width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line)}
+#cores button.sel{box-shadow:0 0 0 3px var(--ink)}
+.linha{display:flex;gap:10px;margin-top:14px}
+.linha > *{flex:1}
+#codigo{text-transform:uppercase;letter-spacing:.3em;text-align:center}
+#menuErro{margin-top:12px;color:var(--red);font-weight:600;min-height:1.2em;text-align:center}
+#menuRodape{margin-top:10px;display:flex;justify-content:space-between;color:var(--ink2);font-size:13px;font-weight:600}
+#menuRodape a{color:var(--ink2);cursor:pointer;text-decoration:underline}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+.chip{position:absolute;padding:10px 14px;background:rgba(255,253,247,.94);border-radius:16px;box-shadow:var(--shadow);font-weight:600}
+#trecho{left:14px;top:14px;min-width:240px}
+#trecho .nome{font-size:18px;font-weight:700}
+#trecho .sub{font-size:13px;color:var(--ink2)}
+.barra{position:relative;height:12px;border-radius:8px;background:#e7e2d6;overflow:hidden;margin-top:6px}
+.barra i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:var(--blue)}
+#dinheiro{right:14px;top:14px;text-align:right;font-size:15px}
+#dinheiro .grande{font-size:24px;font-weight:700}
+#sala{right:14px;top:124px;font-size:14px}
+#sala:not([hidden]) ~ #jogadores{top:176px}
+#sala b{letter-spacing:.18em;font-size:18px;color:var(--blue)}
+#jogadores{position:absolute;right:14px;top:124px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+#jogadores div{background:rgba(39,48,74,.72);color:#fff;padding:4px 10px;border-radius:10px;font-size:14px;font-weight:600;display:flex;gap:6px;align-items:center}
+#jogadores span.bola{width:12px;height:12px;border-radius:50%}
+#agua{left:50%;bottom:22px;transform:translateX(-50%);width:min(440px,70vw);text-align:center}
+#agua .barra{height:18px}
+#agua .barra i{background:linear-gradient(90deg,#4fb7e0,#2f7fd0)}
+#agua.perigo .barra i{background:linear-gradient(90deg,#ff9f1a,#ff5a4e)}
+#agua.perigo{animation:pisca .5s steps(2) infinite}
+@keyframes pisca{50%{background:#ffe0dc}}
+#agua .info{display:flex;justify-content:space-between;font-size:14px;margin-top:6px;color:var(--ink2)}
+#prompt{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:rgba(39,48,74,.84);color:#fff;padding:9px 16px;border-radius:14px;font-size:17px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:8px}
+#prompt .prog{width:60px;height:8px;border-radius:5px;background:#ffffff33;overflow:hidden}
+#prompt .prog i{display:block;height:100%;background:var(--yellow)}
+#avisos{position:absolute;left:50%;top:92px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center}
+.aviso{background:rgba(255,253,247,.96);padding:10px 18px;border-radius:14px;box-shadow:var(--shadow);font-weight:700;font-size:18px;animation:entra .25s ease-out;text-align:center}
+.aviso.ruim{background:var(--red);color:#fff}
+.aviso.bom{background:var(--green);color:#fff}
+.aviso.grande{font-size:30px;padding:14px 28px}
+@keyframes entra{from{transform:translateY(-12px);opacity:0}}
+#chat{position:absolute;left:14px;bottom:18px;width:min(380px,40vw);display:flex;flex-direction:column;gap:4px}
+#chatLog{display:flex;flex-direction:column;gap:3px;font-size:14px;font-weight:600}
+#chatLog div{background:rgba(39,48,74,.66);color:#fff;padding:4px 10px;border-radius:9px;width:fit-content;max-width:100%;transition:opacity 1s}
+#chatLog div.velha{opacity:0}
+#chatIn{pointer-events:auto;border:0;border-radius:10px;padding:8px 12px;font-size:15px;background:rgba(255,253,247,.96);outline:none}
+#dica{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(39,48,74,.8);color:#fff;padding:14px 22px;border-radius:16px;font-weight:600;font-size:18px;text-align:center}
+#mira{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.35);opacity:.8}
+
+/* ---------- painéis (saguão, porto, fim, pausa) ---------- */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,26,44,.45);z-index:10;padding:16px;overflow:auto}
+#painelCard{width:min(980px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:22px 26px}
+#painelCard h2{margin:0 0 4px;font-size:32px}
+#painelCard h3{margin:18px 0 8px;font-size:19px}
+.sub2{color:var(--ink2);font-weight:600;margin:0}
+.cols{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.caixa{background:#f5f0e4;border-radius:16px;padding:14px 16px}
+.contas{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-weight:600;font-size:17px}
+.contas .tot{font-size:22px;font-weight:700;border-top:2px dashed var(--line);padding-top:6px}
+.lista{display:flex;flex-direction:column;gap:6px}
+.lj{display:flex;align-items:center;gap:8px;font-weight:600}
+.lj .bola{width:14px;height:14px;border-radius:50%}
+.lj .ok{margin-left:auto;font-size:13px;padding:2px 9px;border-radius:8px;background:#e7e2d6}
+.lj .ok.sim{background:var(--green);color:#fff}
+.loja{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.up{display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 12px;border-radius:13px;border:0;background:#fff;box-shadow:0 3px 0 rgba(0,0,0,.1)}
+.up b{font-size:15px}
+.up small{color:var(--ink2);font-weight:500;font-size:12.5px}
+.up span{font-weight:700;font-size:14px;margin-top:2px}
+.up:disabled{opacity:.45;cursor:not-allowed}
+.up:not(:disabled):hover{background:#fffbe8}
+#roletaBox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+#roda{width:190px;height:190px;flex-shrink:0}
+.apostas{display:flex;flex-direction:column;gap:8px;flex:1;min-width:220px}
+.fichas{display:flex;gap:6px;flex-wrap:wrap}
+.fichas button{border:0;border-radius:10px;padding:6px 10px;font-weight:700;background:#fff;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.fichas button.sel{background:var(--ink);color:#fff}
+.corBtns{display:flex;gap:6px}
+.corBtns .btn{flex:1;padding:10px 6px;font-size:15px}
+.corBtns .preto{background:#27304a;color:#fff}
+.pronto{margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pronto .btn{font-size:20px;padding:14px 26px}
+.alerta{color:var(--red);font-weight:700}
+.controles{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:15px;font-weight:600;align-items:center}
+.codigoGrande{font-size:44px;font-weight:700;letter-spacing:.25em;color:var(--blue)}
+#pausaCard{width:min(420px,100%);padding:24px}
+#pausaCard h2{margin:0 0 12px}
+.opc{display:flex;flex-direction:column;gap:4px;margin:12px 0;font-weight:600}
+.opc input{width:100%}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<div id="menu">
+  <div class="onda"></div>
+  <div id="menuCard" class="panel">
+    <div id="logo"><h1>BALSA <b>FURADA</b></h1><p>Co-op rio abaixo com os amigos. Não afunde. Pague o Barqueiro.</p></div>
+    <div class="campo"><label for="nome">Seu nome</label><input id="nome" type="text" maxlength="16" autocomplete="off" spellcheck="false"></div>
+    <div class="campo"><label>Sua cor</label><div id="cores"></div></div>
+    <div class="linha"><button class="btn azul" id="btCriar">Criar sala</button><button class="btn cinza" id="btSolo">Jogar sozinho</button></div>
+    <div class="linha"><input id="codigo" type="text" maxlength="5" placeholder="CÓDIGO" autocomplete="off" spellcheck="false" class="campo" style="border:3px solid var(--line);border-radius:12px;padding:10px;font-size:20px;font-weight:700;outline:none;flex:1.2"><button class="btn verde" id="btEntrar">Entrar na sala</button></div>
+    <div id="menuErro"></div>
+    <div id="menuRodape"><span id="versao"></span><a id="btComo">Como jogar</a></div>
+  </div>
+</div>
+
+<div id="hud" hidden>
+  <div id="trecho" class="chip"><div class="nome" id="tNome">—</div><div class="sub" id="tSub">—</div><div class="barra"><i id="tBar" style="width:0"></i></div></div>
+  <div id="dinheiro" class="chip"><div class="grande"><span class="coin"></span><span id="dCofre">0</span></div><div id="dCarga">carga: 0</div><div id="dPed">pedágio: 0</div></div>
+  <div id="sala" class="chip" hidden>Sala <b id="sCodigo"></b></div>
+  <div id="jogadores"></div>
+  <div id="agua" class="chip"><div style="display:flex;justify-content:space-between;font-weight:700"><span>Água na balsa</span><span id="aPct">0%</span></div><div class="barra"><i id="aBar" style="width:0"></i></div><div class="info"><span id="aFuros">0 furos</span><span id="aTabuas">tábuas: 0</span><span id="aPeso">peso: 0</span></div></div>
+  <div id="prompt" hidden></div>
+  <div id="avisos"></div>
+  <div id="chat"><div id="chatLog"></div><input id="chatIn" maxlength="120" placeholder="Mensagem (Enter envia, Esc cancela)" hidden></div>
+  <div id="dica" hidden></div>
+  <div id="mira"></div>
+</div>
+
+<div id="painel" class="overlay" hidden><div id="painelCard" class="panel"></div></div>
+
+<div id="pausa" class="overlay" hidden>
+  <div id="pausaCard" class="panel">
+    <h2>Pausa</h2>
+    <p class="sub2">O rio não para: se você está numa sala, a balsa continua descendo.</p>
+    <div class="opc"><label for="oSens">Sensibilidade do mouse</label><input id="oSens" type="range" min="0.3" max="3" step="0.1"></div>
+    <div class="opc"><label for="oVol">Volume</label><input id="oVol" type="range" min="0" max="1" step="0.05"></div>
+    <div class="opc"><label><input id="oInv" type="checkbox"> Inverter mouse (vertical)</label></div>
+    <div class="linha"><button class="btn verde" id="btVoltar">Continuar</button></div>
+    <div class="linha"><button class="btn cinza" id="btComo2">Como jogar</button><button class="btn verm" id="btSair">Sair da sala</button></div>
+  </div>
+</div>
+
+<div id="como" class="overlay" hidden>
+  <div class="panel" style="width:min(640px,100%);padding:24px 26px">
+    <h2 style="margin:0 0 6px">Como jogar</h2>
+    <p class="sub2">Vocês descem o rio numa balsa velha. Cada trecho acaba num porto, onde o Barqueiro compra os tesouros e cobra o pedágio para seguir viagem. Sem dinheiro pro pedágio, acabou a viagem.</p>
+    <h3>Trabalho na balsa</h3>
+    <div class="controles">
+      <b>Leme</b><span>Fica atrás. Desvia das pedras e das margens (cada batida abre furo).</span>
+      <b>Bomba</b><span>Segure <kbd>E</kbd> para tirar água. Se encher, a balsa afunda.</span>
+      <b>Tábuas</b><span>Pegue uma tábua e segure <kbd>E</kbd> em cima de um furo para tapar.</span>
+      <b>Boia</b><span>Puxa um amigo que caiu na água. Sem ninguém na água, ela fisga o tesouro mais perto.</span>
+      <b>Carga</b><span>A área da frente, com corda. O que fica lá não cai com as batidas.</span>
+    </div>
+    <h3>Controles</h3>
+    <div class="controles">
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Andar / nadar (<kbd>Shift</kbd> corre)</span>
+      <span><kbd>Espaço</kbd></span><span>Pular / subir na balsa quando estiver nadando perto da borda</span>
+      <span><kbd>E</kbd></span><span>Pegar, soltar, usar leme, bomba, tábua e boia</span>
+      <span>Clique</span><span>Arremessar o que está carregando</span>
+      <span><kbd>F</kbd></span><span>Empurrar um amigo (use com sabedoria… ou não)</span>
+      <span><kbd>Enter</kbd></span><span>Chat</span>
+      <span><kbd>Tab</kbd></span><span>Abrir/fechar o painel do porto</span>
+      <span><kbd>Esc</kbd></span><span>Pausa e opções</span>
+    </div>
+    <p class="sub2" style="margin-top:12px">Quanto mais peso a balsa leva, mais água entra pelos furos. Ganância afunda!</p>
+    <div class="linha"><button class="btn verde" id="btComoOk">Bora!</button></div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# Gera o instalador e o .exe portátil do Balsa Furada para Windows.
+# - Todo push que mexe em balsa-furada/ gera os arquivos em "Artifacts" da execução.
+# - Uma tag balsa-v* (ex.: balsa-v1.0.0) também publica uma Release com os .exe.
+name: Balsa Furada (Windows)
+
+on:
+  push:
+    branches: ['**']
+    tags: ['balsa-v*']
+    paths: ['balsa-furada/**', '.github/workflows/balsa-furada.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: balsa-furada
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: balsa-furada/package-lock.json
+      - run: npm ci
+      - run: npx electron-builder --win nsis portable --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BalsaFurada-Windows
+          path: balsa-furada/dist/*.exe
+          if-no-files-found: error
+      - if: startsWith(github.ref, 'refs/tags/balsa-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Balsa Furada ${{ github.ref_name }}
+          files: balsa-furada/dist/*.exe
