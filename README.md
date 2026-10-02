@@ -16,7 +16,7 @@ Meu site pessoal: o ponto de entrada para tudo que eu construo, com portfólio, 
 | `/game` | **Fundição 7**, jogo 3D de fábrica (Three.js, PWA). Código em [Fundicao7](https://github.com/Japinha01/Fundicao7) |
 | `/sina` | **Sina**, roguelite de cartas (Canvas, PWA, 7 idiomas, conta com Firebase, compras e anúncios). Código em [Sina](https://github.com/Japinha01/Sina) |
 | `/api` | Funções serverless da Vercel para as compras do Sina pelo **Mercado Pago** (Checkout Pro) |
-| `/guilda`, `/loja` | Redirecionam para [guilda.japax01.com.br](https://guilda.japax01.com.br) e para a loja |
+| `/guilda` | Redireciona para [guilda.japax01.com.br](https://guilda.japax01.com.br) |
 
 ## Tecnologias
 
