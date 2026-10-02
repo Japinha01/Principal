@@ -1,8 +1,6 @@
 {
   "redirects": [
-    { "source": "/sina", "destination": "/sina/", "permanent": false },
-    { "source": "/loja", "destination": "https://loja.japax01.com.br", "permanent": false },
-    { "source": "/loja/:path*", "destination": "https://loja.japax01.com.br/:path*", "permanent": false }
+    { "source": "/sina", "destination": "/sina/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/sina/lancamento", "destination": "/sina/lancamento.html" },
