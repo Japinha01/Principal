@@ -1,18 +1,4 @@
-// ==UserScript==
-// @name         Twitch PiP
-// @namespace    https://japax01.com.br/twitch-pip
-// @version      1.0.0
-// @description  Adiciona um botão de Picture-in-Picture ao player da Twitch (atalho: Alt+P).
-// @author       Gabriel Lima
-// @match        https://www.twitch.tv/*
-// @match        https://m.twitch.tv/*
-// @match        https://player.twitch.tv/*
-// @icon         https://japax01.com.br/favicon.png
-// @downloadURL  https://japax01.com.br/twitch-pip/twitch-pip.user.js
-// @updateURL    https://japax01.com.br/twitch-pip/twitch-pip.user.js
-// @grant        none
-// @run-at       document-idle
-// ==/UserScript==
+// Twitch PiP: botão de Picture-in-Picture no player da Twitch (atalho Alt+P).
 
 (function () {
   'use strict';

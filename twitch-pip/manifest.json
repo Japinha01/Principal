@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Twitch PiP",
+  "version": "1.0.0",
+  "description": "Adiciona um botão de Picture-in-Picture ao player da Twitch (atalho: Alt+P).",
+  "author": "Gabriel Lima",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.twitch.tv/*", "https://m.twitch.tv/*", "https://player.twitch.tv/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
